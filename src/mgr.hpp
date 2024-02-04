@@ -47,6 +47,7 @@ public:
     madrona::py::Tensor stepsRemainingTensor() const;
     madrona::py::Tensor rgbTensor() const;
     madrona::py::Tensor depthTensor() const;
+    madrona::py::Tensor raycastTensor() const;
 
     // These functions are used by the viewer to control the simulation
     // with keyboard inputs in place of DNN policy actions
@@ -56,7 +57,13 @@ public:
                    int32_t move_amount,
                    int32_t move_angle,
                    int32_t rotate,
-                   int32_t grab);
+                   int32_t grab,
+                   int32_t x,
+                   int32_t y,
+                   int32_t z,
+                   int32_t rot,
+                   int32_t vrot
+                   );
 
     madrona::render::RenderManager & getRenderManager();
 

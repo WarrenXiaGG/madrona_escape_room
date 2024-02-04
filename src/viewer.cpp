@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <imgui.h>
 
 using namespace madrona;
 using namespace madrona::viz;
@@ -32,6 +33,7 @@ int main(int argc, char *argv[])
 
     constexpr int64_t num_views = 2;
 
+    printf("Started in: \n");
     // Read command line arguments
     uint32_t num_worlds = 1;
     if (argc >= 2) {
@@ -69,9 +71,10 @@ int main(int argc, char *argv[])
 #endif
 
     WindowManager wm {};
-    WindowHandle window = wm.makeWindow("Escape Room", 2730, 1536);
+    WindowHandle window = wm.makeWindow("Escape Room", 1000, 700);
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
+    printf("premanage: \n");
     // Create the simulation manager
     Manager mgr({
         .execMode = exec_mode,
@@ -83,6 +86,7 @@ int main(int argc, char *argv[])
         .extRenderAPI = wm.gpuAPIManager().backend(),
         .extRenderDev = render_gpu.device(),
     });
+    printf("postmanage: \n");
 
     float camera_move_speed = 10.f;
 
@@ -123,7 +127,7 @@ int main(int argc, char *argv[])
 
                 printf("%d, %d: %d %d %d %d\n",
                        i, j, move_amount, move_angle, turn, g);
-                mgr.setAction(i, j, move_amount, move_angle, turn, g);
+                mgr.setAction(i, j, move_amount, move_angle, turn, g,1,1,1,1,1);
             }
         }
 
@@ -142,7 +146,7 @@ int main(int argc, char *argv[])
     auto reward_printer = mgr.rewardTensor().makePrinter();
 
     auto printObs = [&]() {
-        printf("Self\n");
+        /*printf("Self\n");
         self_printer.print();
 
         printf("Partner\n");
@@ -163,7 +167,7 @@ int main(int argc, char *argv[])
         printf("Reward\n");
         reward_printer.print();
 
-        printf("\n");
+        printf("\n");*/
     };
 
 
@@ -244,7 +248,48 @@ int main(int argc, char *argv[])
             move_angle = 0;
         }
 
-        mgr.setAction(world_idx, agent_idx, move_amount, move_angle, r, g);
+        x = 1;
+        if (input.keyPressed(Key::W)) {
+            x = 2;
+        }
+        if (input.keyPressed(Key::S)) {
+            x = 0;
+        }
+
+        y = 1;
+        if (input.keyPressed(Key::D)) {
+            y = 2;
+        }
+        if (input.keyPressed(Key::A)) {
+            y = 0;
+        }
+
+        int rot=1;
+        if (input.keyPressed(Key::Q)) {
+            rot = 2;
+        }
+        if (input.keyPressed(Key::E)) {
+            rot = 0;
+        }
+
+        int vrot = 1;
+        if (input.keyPressed(Key::T)) {
+            vrot = 2;
+        }
+        if (input.keyPressed(Key::F)) {
+            vrot = 0;
+        }
+
+        int z = 1;
+        if (input.keyPressed(Key::Space)) {
+            z = 2;
+        }
+
+        if (input.keyPressed(Key::Shift)) {
+            z = 0;
+        }
+
+        mgr.setAction(world_idx, agent_idx, move_amount, move_angle, r, g,x,y,z,rot,vrot);
     }, [&]() {
         if (replay_log.has_value()) {
             bool replay_finished = replayStep();
@@ -257,5 +302,48 @@ int main(int argc, char *argv[])
         mgr.step();
 
         printObs();
-    }, []() {});
+    }, [&exec_mode,&viewer,&mgr]() {
+        unsigned char* print_ptr;
+        #ifdef MADRONA_CUDA_SUPPORT
+            int64_t num_bytes = sizeof(RaycastObservation);
+            print_ptr = (unsigned char*)cu::allocReadback(num_bytes);
+        #else
+            print_ptr = nullptr;
+        #endif
+
+        auto raycastTensor = (RaycastObservation*)(mgr.raycastTensor().devicePtr());
+        raycastTensor = raycastTensor + (viewer.getCurrentWorldID() * consts::numAgents) + (std::max(viewer.getCurrentViewID(), (CountT)0));
+
+        if(exec_mode == ExecMode::CUDA){
+            #ifdef MADRONA_CUDA_SUPPORT
+                cudaMemcpy(print_ptr, raycastTensor,
+                   1 * sizeof(RaycastObservation),
+                   cudaMemcpyDeviceToHost);
+                raycastTensor = (RaycastObservation*)print_ptr;
+            #else
+
+            #endif
+
+        }
+
+        ImGui::Begin("Raycast");
+
+        auto draw2 = ImGui::GetWindowDrawList();
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        auto raycasters = raycastTensor;
+        //printf("%x\n",raycasters);
+        int vertOff = 70;
+        constexpr float pixScale = 3;
+        constexpr int extentsX = (int)(pixScale*consts::rayObservationWidth);
+        constexpr int extentsY = (int)(pixScale *consts::rayObservationHeight);
+        for (int i = 0; i < consts::rayObservationWidth; i++) {
+            for (int j = 0; j < consts::rayObservationHeight; j++) {
+                //unsigned char gammaColor = depth[i][j];//powf(depth[i][j]/255.0,1/2.2)*255;
+                auto realColor = IM_COL32(raycasters->raycast[i][j][0], raycasters->raycast[i][j][1], raycasters->raycast[i][j][2], 255);
+                draw2->AddRectFilled({  (i * pixScale) + windowPos.x, (j * pixScale) + windowPos.y +vertOff }, { ((i + 1) * pixScale) + windowPos.x,   ((j + 1) * pixScale)+ +windowPos.y+vertOff },
+                    realColor, 0, 0);
+            }
+        }
+        ImGui::End();
+    });
 }

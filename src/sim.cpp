@@ -2,6 +2,7 @@
 
 #include "sim.hpp"
 #include "level_gen.hpp"
+#include "madrona/mesh_bvh2.hpp"
 
 using namespace madrona;
 using namespace madrona::math;
@@ -10,6 +11,29 @@ using namespace madrona::phys;
 namespace RenderingSystem = madrona::render::RenderingSystem;
 
 namespace madEscape {
+
+
+inline Quat eulerToQuat(float yaw,float pitch) {
+    const double halfC = 3.1415926535 / 180;
+
+    float ex = pitch;
+    float ey = 0;
+    float ez = yaw;
+    double sx = sin(ex * 0.5);
+    double cx = cos(ex * 0.5);
+    double sy = sin(ey * 0.5);
+    double cy = cos(ey * 0.5);
+    double sz = sin(ez * 0.5);
+    double cz = cos(ez * 0.5);
+
+    ex = (float)(cy * sx * cz - sy * cx * sz);
+    ey = (float)(sy * cx * cz + cy * sx * sz);
+    ez = (float)(cy * cx * sz - sy * sx * cz);
+    float w = (float)(cy * cx * cz + sy * sx * sz);
+
+    Quat cur_rot = Quat{w, ex, ey, ez};
+    return cur_rot;
+}
 
 // Register all the ECS components and archetypes that will be
 // used in the simulation
@@ -34,16 +58,21 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
     registry.registerComponent<OpenState>();
     registry.registerComponent<DoorProperties>();
     registry.registerComponent<Lidar>();
+    registry.registerComponent<RaycastObservation>();
     registry.registerComponent<StepsRemaining>();
     registry.registerComponent<EntityType>();
 
     registry.registerSingleton<WorldReset>();
     registry.registerSingleton<LevelState>();
 
+    registry.registerArchetype<DetatchedCamera>();
+    registry.registerComponent<AgentCamera>();
     registry.registerArchetype<Agent>();
     registry.registerArchetype<PhysicsEntity>();
     registry.registerArchetype<DoorEntity>();
     registry.registerArchetype<ButtonEntity>();
+    registry.registerArchetype<DummyRenderable>();
+
 
     registry.exportSingleton<WorldReset>(
         (uint32_t)ExportID::Reset);
@@ -65,13 +94,15 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         (uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>(
         (uint32_t)ExportID::Done);
+    registry.exportColumn<Agent, RaycastObservation>(
+        (uint32_t)ExportID::Raycast);
 }
 
 static inline void cleanupWorld(Engine &ctx)
 {
     // Destroy current level entities
     LevelState &level = ctx.singleton<LevelState>();
-    for (CountT i = 0; i < consts::numRooms; i++) {
+    /*for (CountT i = 0; i < consts::numRooms; i++) {
         Room &room = level.rooms[i];
         for (CountT j = 0; j < consts::maxEntitiesPerRoom; j++) {
             if (room.entities[j] != Entity::none()) {
@@ -82,12 +113,12 @@ static inline void cleanupWorld(Engine &ctx)
         ctx.destroyRenderableEntity(room.walls[0]);
         ctx.destroyRenderableEntity(room.walls[1]);
         ctx.destroyRenderableEntity(room.door);
-    }
+    }*/
 }
 
 static inline void initWorld(Engine &ctx)
 {
-    phys::RigidBodyPhysicsSystem::reset(ctx);
+    //phys::RigidBodyPhysicsSystem::reset(ctx);
 
     // Assign a new episode ID
     ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
@@ -125,35 +156,36 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
 
 // Translates discrete actions from the Action component to forces
 // used by the physics simulation.
-inline void movementSystem(Engine &,
+inline void movementSystem(Engine &ctx,
                            Action &action, 
-                           Rotation &rot, 
+                           Rotation &rot,
+                           Position &pos,
+                           AgentCamera& cam,
                            ExternalForce &external_force,
                            ExternalTorque &external_torque)
 {
-    constexpr float move_max = 1000;
-    constexpr float turn_max = 320;
+    Quat cur_rot = eulerToQuat(cam.yaw,0);
+    int actionX = action.x - 1;
+    int actionY = action.y - 1;
+    Vector3 walkVec = cur_rot.rotateVec({(float)actionY,(float)actionX,0});
+    walkVec = walkVec.length2() == 0 ? Vector3{0,0,0} : walkVec.normalize();
+    walkVec *= 0.8;
 
-    Quat cur_rot = rot;
+    Vector3 newVelocity = {0,0,0};
+    newVelocity.x =  walkVec.x;
+    newVelocity.y = walkVec.y;
+    newVelocity.z = action.z - 1;
 
-    float move_amount = action.moveAmount *
-        (move_max / (consts::numMoveAmountBuckets - 1));
+    cam.yaw += (action.rot-1)*consts::sensitivity;
+    cam.yaw -= math::pi_m2 * std::floor((cam.yaw + math::pi) * (1. / math::pi_m2));
 
-    constexpr float move_angle_per_bucket =
-        2.f * math::pi / float(consts::numMoveAngleBuckets);
+    cam.pitch += (action.vrot-1) * consts::sensitivity;
+    cam.pitch = std::clamp(cam.pitch,-math::pi_d2,math::pi_d2);
+    pos += newVelocity;
 
-    float move_angle = float(action.moveAngle) * move_angle_per_bucket;
-
-    float f_x = move_amount * sinf(move_angle);
-    float f_y = move_amount * cosf(move_angle);
-
-    constexpr float turn_delta_per_bucket = 
-        turn_max / (consts::numTurnBuckets / 2);
-    float t_z =
-        turn_delta_per_bucket * (action.rotate - consts::numTurnBuckets / 2);
-
-    external_force = cur_rot.rotateVec({ f_x, f_y, 0 });
-    external_torque = Vector3 { 0, 0, t_z };
+    ctx.get<Position>(cam.camera) = Vector3{ pos.x,pos.y,pos.z};
+    ctx.get<Rotation>(cam.camera) = eulerToQuat(cam.yaw, cam.pitch);
+    rot = eulerToQuat(cam.yaw, 0);
 }
 
 // Implements the grab action by casting a short ray in front of the agent
@@ -395,7 +427,7 @@ inline void collectObservationsSystem(Engine &ctx,
     }
 
     const LevelState &level = ctx.singleton<LevelState>();
-    const Room &room = level.rooms[cur_room_idx];
+    /*const Room &room = level.rooms[cur_room_idx];
 
     for (CountT i = 0; i < consts::maxEntitiesPerRoom; i++) {
         Entity entity = room.entities[i];
@@ -421,7 +453,7 @@ inline void collectObservationsSystem(Engine &ctx,
     OpenState door_open_state = ctx.get<OpenState>(cur_door);
 
     door_obs.polar = xyToPolar(to_view.rotateVec(door_pos - pos));
-    door_obs.isOpen = door_open_state.isOpen ? 1.f : 0.f;
+    door_obs.isOpen = door_open_state.isOpen ? 1.f : 0.f;*/
 }
 
 // Launches consts::numLidarSamples per agent.
@@ -480,6 +512,75 @@ inline void lidarSystem(Engine &ctx,
     }
 #else
     for (CountT i = 0; i < consts::numLidarSamples; i++) {
+        traceRay(i);
+    }
+#endif
+}
+
+inline void raycastSystem(Engine &ctx,
+                        Entity e,
+                        RaycastObservation &raycast,
+                        AgentCamera& camera,
+                        Position& position)
+{
+
+    Vector3 pos = ctx.get<Position>(e) + Vector3{0,0, 0};
+    Quat rot = eulerToQuat(camera.yaw,camera.pitch);
+
+    Vector3 agent_fwd = rot.rotateVec(math::fwd);
+    Vector3 right = rot.rotateVec(math::right);
+
+    Vector3 ray_start = pos;
+    Vector3 lookAt = eulerToQuat(camera.yaw, camera.pitch).rotateVec({ 0,1,0 });
+    constexpr float theta = toRadians(90);
+    const float h = tanf(theta/2);
+    const auto viewport_height = 2 * h;
+    const auto viewport_width = viewport_height;
+    const auto forward = lookAt.normalize();
+    auto u = cross({ 0,0,1 }, forward).normalize();
+
+    u = eulerToQuat(camera.yaw, camera.pitch).rotateVec({ 1,0,0 });
+    auto v = cross(forward, u).normalize();
+    auto horizontal =  u *  viewport_width;
+    auto vertical = v * viewport_height;
+    auto lower_left_corner = ray_start - horizontal / 2 - vertical / 2 + forward;
+
+    auto traceRay = [&](int32_t idx) {
+        int pixelY = idx / consts::rayObservationWidth;
+        int pixelX = idx % consts::rayObservationWidth;
+        double v = double(pixelY) / consts::rayObservationHeight;
+        double u = double(pixelX) / consts::rayObservationWidth;
+
+        Vector3 ray_dir = lower_left_corner + u * horizontal + v*vertical - ray_start;
+        ray_dir = ray_dir.normalize();
+
+        float t;
+        Vector3 normal = {0,0,0};
+        (madrona::phys2::MeshBVH*)(ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
+        Vector3 lightDir = Vector3{0.5,0.5,0.5};
+        lightDir = lightDir.normalize();
+        float lightness = normal.dot(lightDir);
+
+        raycast.raycast[pixelX][pixelY][0] = normal.x*255;
+        raycast.raycast[pixelX][pixelY][1] = normal.y*255;
+        raycast.raycast[pixelX][pixelY][2] = normal.z*255;
+
+        raycast.raycast[pixelX][pixelY][0] = lightness*255;
+        raycast.raycast[pixelX][pixelY][1] = lightness*255;
+        raycast.raycast[pixelX][pixelY][2] = lightness*255;
+    };
+
+
+#ifdef MADRONA_GPU_MODE
+    int32_t idx = threadIdx.x;
+
+    if (idx < 256) {
+        for(int32_t rays = 0;rays<16;rays++){
+            traceRay(idx*16+rays);
+        }
+    }
+#else
+    for (CountT i = 0; i < consts::rayObservationWidth * consts::rayObservationHeight; i++) {
         traceRay(i);
     }
 #endif
@@ -551,6 +652,9 @@ inline void stepTrackerSystem(Engine &,
 
 }
 
+inline void testerSystem(Engine& ctx, ObjectID& r){
+}
+
 // Helper function for sorting nodes in the taskgraph.
 // Sorting is only supported / required on the GPU backend,
 // since the CPU backend currently keeps separate tables for each world.
@@ -579,10 +683,16 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
         movementSystem,
             Action,
             Rotation,
+            Position,
+            AgentCamera,
             ExternalForce,
             ExternalTorque
         >>({});
-
+    auto test_sys = builder.addToGraph<ParallelForNode<Engine,
+        testerSystem,
+            ObjectID
+        >>({});
+/*
     // Scripted door behavior
     auto set_door_pos_sys = builder.addToGraph<ParallelForNode<Engine,
         setDoorPositionSystem,
@@ -636,10 +746,10 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
     // Compute initial reward now that physics has updated the world state
     auto reward_sys = builder.addToGraph<ParallelForNode<Engine,
          rewardSystem,
-            Position,
+            Position,bonus_reward_
             Progress,
             Reward
-        >>({door_open_sys});
+        >>({move_sys});
 
     // Assign partner's reward
     auto bonus_reward_sys = builder.addToGraph<ParallelForNode<Engine,
@@ -648,13 +758,13 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
             Progress,
             Reward
         >>({reward_sys});
-
+*/
     // Check if the episode is over
     auto done_sys = builder.addToGraph<ParallelForNode<Engine,
         stepTrackerSystem,
             StepsRemaining,
             Done
-        >>({bonus_reward_sys});
+        >>({move_sys});
 
     // Conditionally reset the world if the episode is over
     auto reset_sys = builder.addToGraph<ParallelForNode<Engine,
@@ -675,8 +785,8 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
     // This second BVH build is a limitation of the current taskgraph API.
     // It's only necessary if the world was reset, but we don't have a way
     // to conditionally queue taskgraph nodes yet.
-    auto post_reset_broadphase = phys::RigidBodyPhysicsSystem::setupBroadphaseTasks(
-        builder, {reset_sys});
+    //auto post_reset_broadphase = phys::RigidBodyPhysicsSystem::setupBroadphaseTasks(
+    //    builder, {reset_sys});
 
     // Finally, collect observations for the next step.
     auto collect_obs = builder.addToGraph<ParallelForNode<Engine,
@@ -690,10 +800,22 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
             PartnerObservations,
             RoomEntityObservations,
             DoorObservation
-        >>({post_reset_broadphase});
+        >>({reset_sys});
+#ifdef MADRONA_GPU_MODE
+    auto raycast = builder.addToGraph<CustomParallelForNode<Engine,
+        raycastSystem, 256, 1,
+#else
+    auto raycast = builder.addToGraph<ParallelForNode<Engine,
+            raycastSystem,
+#endif
+            Entity,
+            RaycastObservation,
+            AgentCamera,
+            Position
+        >>({reset_sys});
 
     // The lidar system
-#ifdef MADRONA_GPU_MODE
+/*#ifdef MADRONA_GPU_MODE
     // Note the use of CustomParallelForNode to create a taskgraph node
     // that launches a warp of threads (32) for each invocation (1).
     // The 32, 1 parameters could be changed to 32, 32 to create a system
@@ -707,7 +829,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
             Entity,
             Lidar
         >>({post_reset_broadphase});
-
+*/
     if (cfg.renderBridge) {
         RenderingSystem::setupTasks(builder, {reset_sys});
     }
@@ -716,7 +838,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
     // Sort entities, this could be conditional on reset like the second
     // BVH build above.
     auto sort_agents = queueSortByWorld<Agent>(
-        builder, {lidar, collect_obs});
+        builder, {collect_obs});
     auto sort_phys_objects = queueSortByWorld<PhysicsEntity>(
         builder, {sort_agents});
     auto sort_buttons = queueSortByWorld<ButtonEntity>(
@@ -727,7 +849,6 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
         builder, {sort_walls});
     (void)sort_walls;
 #else
-    (void)lidar;
     (void)collect_obs;
 #endif
 }
@@ -759,6 +880,7 @@ Sim::Sim(Engine &ctx,
     }
 
     curWorldEpisode = 0;
+    bvh = cfg.bvh;
 
     // Creates agents, walls, etc.
     createPersistentEntities(ctx);

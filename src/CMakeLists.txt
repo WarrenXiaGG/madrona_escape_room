@@ -3,6 +3,8 @@ set(SIMULATOR_SRCS
     sim.hpp sim.inl sim.cpp
     level_gen.hpp level_gen.cpp
 )
+SET(GPU_HIDESEEK_COMPILE_FLAGS
+    -v)
 
 add_library(mad_escape_cpu_impl STATIC
     ${SIMULATOR_SRCS}
@@ -67,7 +69,9 @@ if (TARGET madrona_viz)
     add_executable(viewer viewer.cpp)
     target_link_libraries(viewer PRIVATE
         madrona_mw_core mad_escape_mgr madrona_viz)
-
+    if (TARGET madrona_cuda)
+        target_link_libraries(viewer PRIVATE madrona_cuda)
+    endif()
     target_compile_definitions(viewer PRIVATE
         -DDATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/"
     )

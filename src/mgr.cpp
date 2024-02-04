@@ -7,6 +7,8 @@
 #include <madrona/tracing.hpp>
 #include <madrona/mw_cpu.hpp>
 #include <madrona/render/api.hpp>
+#include <madrona/mesh_bvh.hpp>
+#include <madrona/physics_assets.hpp>
 
 #include <array>
 #include <charconv>
@@ -185,7 +187,7 @@ struct Manager::CUDAImpl final : Manager::Impl {
 };
 #endif
 
-static void loadRenderObjects(render::RenderManager &render_mgr)
+static void loadRenderObjects(render::RenderManager &render_mgr,MeshBVH** bvh)
 {
     std::array<std::string, (size_t)SimObject::NumObjects> render_asset_paths;
     render_asset_paths[(size_t)SimObject::Cube] =
@@ -200,6 +202,10 @@ static void loadRenderObjects(render::RenderManager &render_mgr)
         (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
     render_asset_paths[(size_t)SimObject::Plane] =
         (std::filesystem::path(DATA_DIR) / "plane.obj").string();
+    render_asset_paths[(size_t)SimObject::Dust2] =
+        (std::filesystem::path(DATA_DIR) / "funky2.obj").string();
+    //render_asset_paths[(size_t)SimObject::Dust2] =
+    //    (std::filesystem::path(DATA_DIR) / "dust2tri.obj").string();
 
     std::array<const char *, (size_t)SimObject::NumObjects> render_asset_cstrs;
     for (size_t i = 0; i < render_asset_paths.size(); i++) {
@@ -233,6 +239,9 @@ static void loadRenderObjects(render::RenderManager &render_mgr)
     render_assets->objects[(CountT)SimObject::Agent].meshes[2].materialIDX = 3;
     render_assets->objects[(CountT)SimObject::Button].meshes[0].materialIDX = 6;
     render_assets->objects[(CountT)SimObject::Plane].meshes[0].materialIDX = 4;
+    for(int i =0;i<render_assets->objects[(CountT)SimObject::Dust2].meshes.size();i++) {
+        render_assets->objects[(CountT) SimObject::Dust2].meshes[i].materialIDX = 0;
+    }
 
     render_mgr.loadObjects(render_assets->objects, materials, {
         { (std::filesystem::path(DATA_DIR) /
@@ -244,6 +253,24 @@ static void loadRenderObjects(render::RenderManager &render_mgr)
     render_mgr.configureLighting({
         { true, math::Vector3{1.0f, 1.0f, -2.0f}, math::Vector3{1.0f, 1.0f, 1.0f} }
     });
+
+
+    if (bvh){
+        *bvh = (MeshBVH*)malloc(sizeof(MeshBVH));
+
+        MeshBVH out_bvh;
+        StackAlloc tmp_alloc;
+        CountT numBytes;
+        MeshBVHBuilder::build(render_assets->objects[(CountT)SimObject::Dust2].meshes,
+                             tmp_alloc,
+                             *bvh,
+                             &numBytes);
+    }
+
+    /*float t = -1;
+    math::Vector3 normal;
+    out_bvh.traceRay(math::Vector3{0,0,0},math::Vector3{0.5,0.5,0},&t,&normal);
+    printf("%f,%f,%f,%f\n",normal.x,normal.y,normal.z,t);*/
 }
 
 static void loadPhysicsObjects(PhysicsLoader &loader)
@@ -259,6 +286,8 @@ static void loadPhysicsObjects(PhysicsLoader &loader)
         (std::filesystem::path(DATA_DIR) / "agent_collision_simplified.obj").string();
     asset_paths[(size_t)SimObject::Button] =
         (std::filesystem::path(DATA_DIR) / "cube_collision.obj").string();
+    asset_paths[(size_t)SimObject::Dust2] =
+       (std::filesystem::path(DATA_DIR) / "cube_collision.obj").string();
 
     std::array<const char *, (size_t)SimObject::NumObjects - 1> asset_cstrs;
     for (size_t i = 0; i < asset_paths.size(); i++) {
@@ -330,6 +359,11 @@ static void loadPhysicsObjects(PhysicsLoader &loader)
         .muD = 0.5f,
     });
 
+    setupHull(SimObject::Dust2, 1.f, {
+        .muS = 0.5f,
+        .muD = 0.5f,
+    });
+
     SourceCollisionPrimitive plane_prim {
         .type = CollisionPrimitive::Type::Plane,
     };
@@ -380,8 +414,9 @@ Manager::Impl * Manager::Impl::init(
     switch (mgr_cfg.execMode) {
     case ExecMode::CUDA: {
 #ifdef MADRONA_CUDA_SUPPORT
+        printf("Cuda init:\n");
         CUcontext cu_ctx = MWCudaExecutor::initCUDA(mgr_cfg.gpuID);
-
+        printf("post Cuda init:\n");
         PhysicsLoader phys_loader(ExecMode::CUDA, 10);
         loadPhysicsObjects(phys_loader);
 
@@ -394,15 +429,34 @@ Manager::Impl * Manager::Impl::init(
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
+        MeshBVH* bvh = nullptr;
         if (render_mgr.has_value()) {
-            loadRenderObjects(*render_mgr);
+            loadRenderObjects(*render_mgr,&bvh);
             sim_cfg.renderBridge = render_mgr->bridge();
         } else {
             sim_cfg.renderBridge = nullptr;
         }
 
+
+        sim_cfg.bvh = (MeshBVH*)cu::allocGPU(sizeof(MeshBVH));
+        auto* nodes = (MeshBVH::Node*)cu::allocGPU(sizeof(MeshBVH::Node)*bvh->numNodes);
+        auto* leafGeos = (MeshBVH::LeafGeometry*)cu::allocGPU(sizeof(MeshBVH::LeafGeometry)*bvh->numLeaves);
+        auto* leafMats = (MeshBVH::LeafMaterial*)cu::allocGPU(sizeof(MeshBVH::MeshBVH::LeafMaterial)*bvh->numLeaves);
+        auto* vertices = (Vector3*)cu::allocGPU(sizeof(Vector3)*bvh->numVerts);
+        REQ_CUDA(cudaMemcpy(nodes,bvh->nodes,sizeof(MeshBVH::Node)*bvh->numNodes,cudaMemcpyHostToDevice));
+        REQ_CUDA(cudaMemcpy(leafGeos,bvh->leafGeos,sizeof(MeshBVH::LeafGeometry)*bvh->numLeaves,cudaMemcpyHostToDevice));
+        REQ_CUDA(cudaMemcpy(leafMats,bvh->leafMats,sizeof(MeshBVH::MeshBVH::LeafMaterial)*bvh->numLeaves,cudaMemcpyHostToDevice));
+        REQ_CUDA(cudaMemcpy(vertices,bvh->vertices,sizeof(Vector3)*bvh->numVerts,cudaMemcpyHostToDevice));
+        bvh->vertices = vertices;
+        bvh->leafMats = leafMats;
+        bvh->nodes = nodes;
+        bvh->leafGeos = leafGeos;
+        REQ_CUDA(cudaMemcpy((MeshBVH*)(sim_cfg.bvh),(MeshBVH*)bvh,sizeof(MeshBVH),cudaMemcpyHostToDevice));
+
+
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
 
+        printf("Combine compile:\n");
         MWCudaExecutor gpu_exec({
             .worldInitPtr = world_inits.data(),
             .numWorldInitBytes = sizeof(Sim::WorldInit),
@@ -417,7 +471,7 @@ Manager::Impl * Manager::Impl::init(
             { GPU_HIDESEEK_COMPILE_FLAGS },
             CompileConfig::OptMode::LTO,
         }, cu_ctx);
-
+        printf("Combine postcompile\n");
         WorldReset *world_reset_buffer = 
             (WorldReset *)gpu_exec.getExported((uint32_t)ExportID::Reset);
 
@@ -450,12 +504,14 @@ Manager::Impl * Manager::Impl::init(
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
+        MeshBVH* bvh;
         if (render_mgr.has_value()) {
-            loadRenderObjects(*render_mgr);
+            loadRenderObjects(*render_mgr,&bvh);
             sim_cfg.renderBridge = render_mgr->bridge();
         } else {
             sim_cfg.renderBridge = nullptr;
         }
+        //sim_cfg.bvh = bvh;
 
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
 
@@ -658,6 +714,17 @@ Tensor Manager::depthTensor() const
     }, impl_->cfg.gpuID);
 }
 
+Tensor Manager::raycastTensor() const
+{
+    return impl_->exportTensor(ExportID::Raycast,
+                               Tensor::ElementType::UInt8,
+                               {
+                                   impl_->cfg.numWorlds,
+                                   consts::numAgents,
+                                   sizeof(RaycastObservation),
+                               });
+}
+
 void Manager::triggerReset(int32_t world_idx)
 {
     WorldReset reset {
@@ -681,13 +748,23 @@ void Manager::setAction(int32_t world_idx,
                         int32_t move_amount,
                         int32_t move_angle,
                         int32_t rotate,
-                        int32_t grab)
+                        int32_t grab,
+                        int32_t x,
+                        int32_t y,
+                        int32_t z,
+                        int32_t rot,
+                        int32_t vrot)
 {
     Action action { 
         .moveAmount = move_amount,
         .moveAngle = move_angle,
         .rotate = rotate,
         .grab = grab,
+        .x = x,
+        .y = y,
+        .z = z,
+        .rot = rot,
+        .vrot = vrot,
     };
 
     auto *action_ptr = impl_->agentActionsBuffer +

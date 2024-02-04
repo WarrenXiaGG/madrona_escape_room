@@ -75,8 +75,14 @@ static void registerRigidBodyEntity(
 // All these entities persist across all episodes.
 void createPersistentEntities(Engine &ctx)
 {
+    Entity e = ctx.makeEntity<DummyRenderable>();
+    ctx.get<Position>(e) = Vector3{0,0,0};
+    ctx.get<Rotation>(e) = Quat(1,0,0,0);//Rotation::fromAngularVec(Vector3{0,0,0});
+    ctx.get<Scale>(e) = Diag3x3{1,1,1};
+    ctx.get<ObjectID>(e) = {(int32_t)SimObject::Dust2};
+    render::RenderingSystem::makeEntityRenderable(ctx,e);
     // Create the floor entity, just a simple static plane.
-    ctx.data().floorPlane = ctx.makeRenderableEntity<PhysicsEntity>();
+    /*ctx.data().floorPlane = ctx.makeRenderableEntity<PhysicsEntity>();
     setupRigidBodyEntity(
         ctx,
         ctx.data().floorPlane,
@@ -145,7 +151,7 @@ void createPersistentEntities(Engine &ctx)
             consts::wallWidth,
             consts::worldLength,
             2.f,
-        });
+        });*/
 
     // Create agent entities. Note that this leaves a lot of components
     // uninitialized, these will be set during world generation, which is
@@ -156,10 +162,13 @@ void createPersistentEntities(Engine &ctx)
 
         // Create a render view for the agent
         if (ctx.data().enableRender) {
+            auto camera = ctx.makeEntity<DetatchedCamera>();
+            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = 0, .pitch = 0 };
             render::RenderingSystem::attachEntityToView(ctx,
-                    agent,
-                    100.f, 0.001f,
-                    1.5f * math::up);
+                    camera,
+                    90.f, 0.001f,
+                    { 0,0,0 });
+            render::RenderingSystem::makeEntityRenderable(ctx,agent);
         }
 
         ctx.get<Scale>(agent) = Diag3x3 { 1, 1, 1 };
@@ -192,16 +201,16 @@ void createPersistentEntities(Engine &ctx)
 // reset their positions.
 static void resetPersistentEntities(Engine &ctx)
 {
-    registerRigidBodyEntity(ctx, ctx.data().floorPlane, SimObject::Plane);
+    //registerRigidBodyEntity(ctx, ctx.data().floorPlane, SimObject::Plane);
 
-     for (CountT i = 0; i < 3; i++) {
+     /*for (CountT i = 0; i < 3; i++) {
          Entity wall_entity = ctx.data().borders[i];
          registerRigidBodyEntity(ctx, wall_entity, SimObject::Wall);
-     }
+     }*/
 
      for (CountT i = 0; i < consts::numAgents; i++) {
          Entity agent_entity = ctx.data().agents[i];
-         registerRigidBodyEntity(ctx, agent_entity, SimObject::Agent);
+         //registerRigidBodyEntity(ctx, agent_entity, SimObject::Agent);
 
          // Place the agents near the starting wall
          Vector3 pos {
@@ -210,6 +219,11 @@ static void resetPersistentEntities(Engine &ctx)
              randBetween(ctx, consts::agentRadius * 1.1f,  2.f),
              0.f,
          };
+
+         auto camera = ctx.get<AgentCamera>(agent_entity).camera;
+            ctx.get<Position>(camera) = ctx.get<Position>(agent_entity);
+            ctx.get<Rotation>(camera) = ctx.get<Rotation>(agent_entity);
+            ctx.get<Scale>(camera) = Diag3x3{ 0.001,0.001,0.001 };
 
          if (i % 2 == 0) {
              pos.x += consts::worldWidth / 4.f;
@@ -241,7 +255,14 @@ static void resetPersistentEntities(Engine &ctx)
              .moveAngle = 0,
              .rotate = consts::numTurnBuckets / 2,
              .grab = 0,
+             .x = 1,
+             .y = 1,
+             .z = 1,
+             .rot = 1,
+             .vrot = 1
          };
+
+         memset(ctx.get<RaycastObservation>(agent_entity).raycast,0,consts::rayObservationWidth*consts::rayObservationHeight);
 
          ctx.get<StepsRemaining>(agent_entity).t = consts::episodeLen;
      }
@@ -629,7 +650,7 @@ static void generateLevel(Engine &ctx)
 void generateWorld(Engine &ctx)
 {
     resetPersistentEntities(ctx);
-    generateLevel(ctx);
+    //generateLevel(ctx);
 }
 
 }

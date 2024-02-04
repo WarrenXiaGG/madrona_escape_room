@@ -6,6 +6,8 @@
 
 #include "consts.hpp"
 #include "types.hpp"
+#include "madrona/mesh_bvh.hpp"
+
 
 namespace madEscape {
 
@@ -24,6 +26,7 @@ enum class ExportID : uint32_t {
     DoorObservation,
     Lidar,
     StepsRemaining,
+    Raycast,
     NumExports,
 };
 
@@ -35,6 +38,7 @@ enum class SimObject : uint32_t {
     Door,
     Agent,
     Button,
+    Dust2,
     Plane,
     NumObjects,
 };
@@ -52,6 +56,7 @@ struct Sim : public madrona::WorldBase {
         RandKey initRandKey;
         madrona::phys::ObjectManager *rigidBodyObjMgr;
         const madrona::render::RenderECSBridge *renderBridge;
+        const madrona::phys::MeshBVH* bvh;
     };
 
     // This class would allow per-world custom data to be passed into
@@ -101,6 +106,7 @@ struct Sim : public madrona::WorldBase {
     // Agent entity references. This entities live across all episodes
     // and are just reset to the start of the level on reset.
     Entity agents[consts::numAgents];
+    const madrona::phys::MeshBVH* bvh;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {
