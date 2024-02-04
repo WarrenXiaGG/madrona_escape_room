@@ -255,17 +255,7 @@ static void loadRenderObjects(render::RenderManager &render_mgr,MeshBVH** bvh)
     });
 
 
-    if (bvh){
-        *bvh = (MeshBVH*)malloc(sizeof(MeshBVH));
 
-        MeshBVH out_bvh;
-        StackAlloc tmp_alloc;
-        CountT numBytes;
-        MeshBVHBuilder::build(render_assets->objects[(CountT)SimObject::Dust2].meshes,
-                             tmp_alloc,
-                             *bvh,
-                             &numBytes);
-    }
 
     /*float t = -1;
     math::Vector3 normal;
@@ -411,6 +401,29 @@ Manager::Impl * Manager::Impl::init(
     sim_cfg.autoReset = mgr_cfg.autoReset;
     sim_cfg.initRandKey = rand::initKey(mgr_cfg.randSeed);
 
+    std::array<std::string,1> collision_asset_paths;
+    collision_asset_paths[0] =
+        (std::filesystem::path(DATA_DIR) / "funky2.obj").string();
+    std::array<const char *, 1> collision_asset_cstrs;
+    for (size_t i = 0; i < collision_asset_paths.size(); i++) {
+        collision_asset_cstrs[i] = collision_asset_paths[i].c_str();
+    }
+    std::array<char, 1024> import_err;
+    auto collision_assets = imp::ImportedAssets::importFromDisk(
+        collision_asset_cstrs, Span<char>(import_err.data(), import_err.size()));
+
+    if (!collision_assets.has_value()) {
+        FATAL("Failed to load collision meshes: %s", import_err);
+    }
+
+    auto* bvh = (MeshBVH*)malloc(sizeof(MeshBVH));
+    StackAlloc tmp_alloc;
+    CountT numBytes;
+    MeshBVHBuilder::build(collision_assets->objects[0].meshes,
+                             tmp_alloc,
+                             bvh,
+                             &numBytes);
+
     switch (mgr_cfg.execMode) {
     case ExecMode::CUDA: {
 #ifdef MADRONA_CUDA_SUPPORT
@@ -429,7 +442,6 @@ Manager::Impl * Manager::Impl::init(
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
-        MeshBVH* bvh = nullptr;
         if (render_mgr.has_value()) {
             loadRenderObjects(*render_mgr,&bvh);
             sim_cfg.renderBridge = render_mgr->bridge();
@@ -504,14 +516,13 @@ Manager::Impl * Manager::Impl::init(
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
-        MeshBVH* bvh;
         if (render_mgr.has_value()) {
             loadRenderObjects(*render_mgr,&bvh);
             sim_cfg.renderBridge = render_mgr->bridge();
         } else {
             sim_cfg.renderBridge = nullptr;
         }
-        //sim_cfg.bvh = bvh;
+        sim_cfg.bvh = bvh;
 
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
 

@@ -159,11 +159,10 @@ void createPersistentEntities(Engine &ctx)
     for (CountT i = 0; i < consts::numAgents; ++i) {
         Entity agent = ctx.data().agents[i] =
             ctx.makeRenderableEntity<Agent>();
-
+        auto camera = ctx.makeEntity<DetatchedCamera>();
+            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = 0, .pitch = 0 };
         // Create a render view for the agent
         if (ctx.data().enableRender) {
-            auto camera = ctx.makeEntity<DetatchedCamera>();
-            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = 0, .pitch = 0 };
             render::RenderingSystem::attachEntityToView(ctx,
                     camera,
                     90.f, 0.001f,
@@ -176,6 +175,7 @@ void createPersistentEntities(Engine &ctx)
         ctx.get<ResponseType>(agent) = ResponseType::Dynamic;
         ctx.get<GrabState>(agent).constraintEntity = Entity::none();
         ctx.get<EntityType>(agent) = EntityType::Agent;
+
     }
 
     // Populate OtherAgents component, which maintains a reference to the
@@ -232,6 +232,7 @@ static void resetPersistentEntities(Engine &ctx)
          }
 
          ctx.get<Position>(agent_entity) = pos;
+         ctx.get<Position>(agent_entity) = i == 0 ? Vector3{57.828960f,214.227753f,51.0f} : Vector3{-48.940105f,123.385071f,33.0f};
          ctx.get<Rotation>(agent_entity) = Quat::angleAxis(
              randInRangeCentered(ctx, math::pi / 4.f),
              math::up);

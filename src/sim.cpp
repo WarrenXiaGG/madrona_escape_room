@@ -2,7 +2,7 @@
 
 #include "sim.hpp"
 #include "level_gen.hpp"
-#include "madrona/mesh_bvh2.hpp"
+//#include "madrona/mesh_bvh2.hpp"
 
 using namespace madrona;
 using namespace madrona::math;
@@ -186,6 +186,8 @@ inline void movementSystem(Engine &ctx,
     ctx.get<Position>(cam.camera) = Vector3{ pos.x,pos.y,pos.z};
     ctx.get<Rotation>(cam.camera) = eulerToQuat(cam.yaw, cam.pitch);
     rot = eulerToQuat(cam.yaw, 0);
+
+    //printf("%f,%f,%f\n",pos.x,pos.y,pos.z);
 }
 
 // Implements the grab action by casting a short ray in front of the agent
@@ -556,7 +558,8 @@ inline void raycastSystem(Engine &ctx,
 
         float t;
         Vector3 normal = {0,0,0};
-        (madrona::phys2::MeshBVH*)(ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
+        //(madrona::phys2::MeshBVH*)(ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
+        (ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
         Vector3 lightDir = Vector3{0.5,0.5,0.5};
         lightDir = lightDir.normalize();
         float lightness = normal.dot(lightDir);

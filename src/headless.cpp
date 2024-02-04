@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 
     std::random_device rd;
     std::mt19937 rand_gen(rd());
-    std::uniform_int_distribution<int32_t> act_rand(0, 4);
+    std::uniform_int_distribution<int32_t> act_rand(0, 2);
 
     auto start = std::chrono::system_clock::now();
 
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
                     int32_t y = act_rand(rand_gen);
                     int32_t r = act_rand(rand_gen);
 
-                    mgr.setAction(j, k, x, y, r, 0,0,0,0,0,0);
+                    mgr.setAction(j, k, x, y, r, 0,act_rand(rand_gen),1,1,2,1);
                     
                     int64_t base_idx = j * num_steps * 2 * 3 + i * 2 * 3 + k * 3;
                     action_store[base_idx] = x;
