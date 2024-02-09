@@ -4,7 +4,6 @@ namespace madEscape {
 
 using namespace madrona;
 using namespace madrona::math;
-using namespace madrona::phys;
 
 namespace consts {
 
@@ -38,7 +37,6 @@ static inline void setupRigidBodyEntity(
     Quat rot,
     SimObject sim_obj,
     EntityType entity_type,
-    ResponseType response_type = ResponseType::Dynamic,
     Diag3x3 scale = {1, 1, 1})
 {
     ObjectID obj_id { (int32_t)sim_obj };
@@ -47,13 +45,6 @@ static inline void setupRigidBodyEntity(
     ctx.get<Rotation>(e) = rot;
     ctx.get<Scale>(e) = scale;
     ctx.get<ObjectID>(e) = obj_id;
-    ctx.get<Velocity>(e) = {
-        Vector3::zero(),
-        Vector3::zero(),
-    };
-    ctx.get<ResponseType>(e) = response_type;
-    ctx.get<ExternalForce>(e) = Vector3::zero();
-    ctx.get<ExternalTorque>(e) = Vector3::zero();
     ctx.get<EntityType>(e) = entity_type;
 }
 
@@ -67,8 +58,6 @@ static void registerRigidBodyEntity(
     SimObject sim_obj)
 {
     ObjectID obj_id { (int32_t)sim_obj };
-    ctx.get<broadphase::LeafID>(e) =
-        RigidBodyPhysicsSystem::registerEntity(ctx, e, obj_id);
 }
 
 // Creates floor, outer walls, and agent entities.
@@ -172,7 +161,6 @@ void createPersistentEntities(Engine &ctx)
 
         ctx.get<Scale>(agent) = Diag3x3 { 1, 1, 1 };
         ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObject::Agent };
-        ctx.get<ResponseType>(agent) = ResponseType::Dynamic;
         ctx.get<GrabState>(agent).constraintEntity = Entity::none();
         ctx.get<EntityType>(agent) = EntityType::Agent;
 
@@ -245,12 +233,6 @@ static void resetPersistentEntities(Engine &ctx)
 
          ctx.get<Progress>(agent_entity).maxY = pos.y;
 
-         ctx.get<Velocity>(agent_entity) = {
-             Vector3::zero(),
-             Vector3::zero(),
-         };
-         ctx.get<ExternalForce>(agent_entity) = Vector3::zero();
-         ctx.get<ExternalTorque>(agent_entity) = Vector3::zero();
          ctx.get<Action>(agent_entity) = Action {
              .moveAmount = 0,
              .moveAngle = 0,
@@ -294,7 +276,6 @@ static void makeEndWall(Engine &ctx,
         Quat { 1, 0, 0, 0 },
         SimObject::Wall,
         EntityType::Wall,
-        ResponseType::Static,
         Diag3x3 {
             left_len,
             consts::wallWidth,
@@ -316,7 +297,6 @@ static void makeEndWall(Engine &ctx,
         Quat { 1, 0, 0, 0 },
         SimObject::Wall,
         EntityType::Wall,
-        ResponseType::Static,
         Diag3x3 {
             right_len,
             consts::wallWidth,
@@ -336,7 +316,6 @@ static void makeEndWall(Engine &ctx,
         Quat { 1, 0, 0, 0 },
         SimObject::Door,
         EntityType::Door,
-        ResponseType::Static,
         Diag3x3 {
             consts::doorWidth * 0.8f,
             consts::wallWidth,
@@ -390,7 +369,6 @@ static Entity makeCube(Engine &ctx,
         Quat { 1, 0, 0, 0 },
         SimObject::Cube,
         EntityType::Cube,
-        ResponseType::Dynamic,
         Diag3x3 {
             scale,
             scale,

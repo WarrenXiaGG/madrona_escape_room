@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
 
         auto raycastTensor = (RaycastObservation*)(mgr.raycastTensor().devicePtr());
         raycastTensor = raycastTensor + (viewer.getCurrentWorldID() * consts::numAgents) + (std::max(viewer.getCurrentViewID(), (CountT)0));
-
+        //printf("%x\n",raycastTensor);
         if(exec_mode == ExecMode::CUDA){
             #ifdef MADRONA_CUDA_SUPPORT
                 cudaMemcpy(print_ptr, raycastTensor,

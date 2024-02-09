@@ -434,7 +434,7 @@ Manager::Impl * Manager::Impl::init(
         loadPhysicsObjects(phys_loader);
 
         ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
-        sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
+        //sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
 
         Optional<RenderGPUState> render_gpu_state =
             initRenderGPUState(mgr_cfg);
@@ -508,7 +508,7 @@ Manager::Impl * Manager::Impl::init(
         loadPhysicsObjects(phys_loader);
 
         ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
-        sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
+        //sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
 
         Optional<RenderGPUState> render_gpu_state =
             initRenderGPUState(mgr_cfg);
@@ -523,6 +523,10 @@ Manager::Impl * Manager::Impl::init(
             sim_cfg.renderBridge = nullptr;
         }
         sim_cfg.bvh = bvh;
+
+        for(int i=0;i<MeshBVH::nodeWidth;i++){
+            printf("child %d,%d\n",(bvh->nodes)[672].children[i],bvh->nodes[672].isLeaf(i));
+        }
 
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
 
@@ -730,8 +734,7 @@ Tensor Manager::raycastTensor() const
     return impl_->exportTensor(ExportID::Raycast,
                                Tensor::ElementType::UInt8,
                                {
-                                   impl_->cfg.numWorlds,
-                                   consts::numAgents,
+                                   impl_->cfg.numWorlds*consts::numAgents,
                                    sizeof(RaycastObservation),
                                });
 }

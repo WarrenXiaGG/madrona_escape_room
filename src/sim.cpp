@@ -40,7 +40,7 @@ inline Quat eulerToQuat(float yaw,float pitch) {
 void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 {
     base::registerTypes(registry);
-    phys::RigidBodyPhysicsSystem::registerTypes(registry);
+    //phys::RigidBodyPhysicsSystem::registerTypes(registry);
 
     RenderingSystem::registerTypes(registry, cfg.renderBridge);
 
@@ -160,9 +160,7 @@ inline void movementSystem(Engine &ctx,
                            Action &action, 
                            Rotation &rot,
                            Position &pos,
-                           AgentCamera& cam,
-                           ExternalForce &external_force,
-                           ExternalTorque &external_torque)
+                           AgentCamera& cam)
 {
     Quat cur_rot = eulerToQuat(cam.yaw,0);
     int actionX = action.x - 1;
@@ -199,6 +197,7 @@ inline void grabSystem(Engine &ctx,
                        Action action,
                        GrabState &grab)
 {
+    /*
     if (action.grab == 0) {
         return;
     }
@@ -255,7 +254,7 @@ inline void grabSystem(Engine &ctx,
     float separation = hit_t - 1.25f;
 
     ctx.get<JointConstraint>(constraint_entity) = JointConstraint::setupFixed(
-        e, grab_entity, attach1, attach2, r1, r2, separation);
+        e, grab_entity, attach1, attach2, r1, r2, separation);*/
 }
 
 // Animates the doors opening and closing based on OpenState
@@ -300,10 +299,10 @@ inline void buttonSystem(Engine &ctx,
     };
 
     bool button_pressed = false;
-    RigidBodyPhysicsSystem::findEntitiesWithinAABB(
+    /*RigidBodyPhysicsSystem::findEntitiesWithinAABB(
             ctx, button_aabb, [&](Entity) {
         button_pressed = true;
-    });
+    });*/
 
     state.isPressed = button_pressed;
 }
@@ -329,6 +328,7 @@ inline void doorOpenSystem(Engine &ctx,
 
 // Make the agents easier to control by zeroing out their velocity
 // after each step.
+/*
 inline void agentZeroVelSystem(Engine &,
                                Velocity &vel,
                                Action &)
@@ -338,7 +338,7 @@ inline void agentZeroVelSystem(Engine &,
     vel.linear.z = fminf(vel.linear.z, 0);
 
     vel.angular = Vector3::zero();
-}
+}*/
 
 static inline float distObs(float v)
 {
@@ -466,6 +466,7 @@ inline void lidarSystem(Engine &ctx,
                         Entity e,
                         Lidar &lidar)
 {
+    /*
     Vector3 pos = ctx.get<Position>(e);
     Quat rot = ctx.get<Rotation>(e);
     auto &bvh = ctx.singleton<broadphase::BVH>();
@@ -516,7 +517,7 @@ inline void lidarSystem(Engine &ctx,
     for (CountT i = 0; i < consts::numLidarSamples; i++) {
         traceRay(i);
     }
-#endif
+#endif*/
 }
 
 inline void raycastSystem(Engine &ctx,
@@ -525,7 +526,7 @@ inline void raycastSystem(Engine &ctx,
                         AgentCamera& camera,
                         Position& position)
 {
-
+    //printf("%d\n",ctx.worldID().idx);
     Vector3 pos = ctx.get<Position>(e) + Vector3{0,0, 0};
     Quat rot = eulerToQuat(camera.yaw,camera.pitch);
 
@@ -547,7 +548,7 @@ inline void raycastSystem(Engine &ctx,
     auto vertical = v * viewport_height;
     auto lower_left_corner = ray_start - horizontal / 2 - vertical / 2 + forward;
 
-    auto traceRay = [&](int32_t idx) {
+    auto traceRay = [&](int32_t idx, int32_t subthread) {
         int pixelY = idx / consts::rayObservationWidth;
         int pixelX = idx % consts::rayObservationWidth;
         double v = double(pixelY) / consts::rayObservationHeight;
@@ -559,32 +560,47 @@ inline void raycastSystem(Engine &ctx,
         float t;
         Vector3 normal = {0,0,0};
         //(madrona::phys2::MeshBVH*)(ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
-        (ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
+        bool hit = (ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
         Vector3 lightDir = Vector3{0.5,0.5,0.5};
         lightDir = lightDir.normalize();
         float lightness = normal.dot(lightDir);
+        if(normal.length2() != 0){
+            lightness += 0.005;
+        }
+        //if(idx == 0)
+        //printf("%d,%f,%f,%f\n",ctx.worldID().idx,normal.x,normal.y,normal.z);
 
-        raycast.raycast[pixelX][pixelY][0] = normal.x*255;
-        raycast.raycast[pixelX][pixelY][1] = normal.y*255;
-        raycast.raycast[pixelX][pixelY][2] = normal.z*255;
-
-        raycast.raycast[pixelX][pixelY][0] = lightness*255;
-        raycast.raycast[pixelX][pixelY][1] = lightness*255;
-        raycast.raycast[pixelX][pixelY][2] = lightness*255;
+        if (hit && subthread == 0) {
+            raycast.raycast[pixelX][pixelY][0] = (normal.x * 0.5 + 0.5) * 255;
+            raycast.raycast[pixelX][pixelY][1] = (normal.y * 0.5 + 0.5) * 255;
+            raycast.raycast[pixelX][pixelY][2] = (normal.z * 0.5 + 0.5) * 255;
+        }else{
+            raycast.raycast[pixelX][pixelY][0] = 0;
+            raycast.raycast[pixelX][pixelY][1] = 0;
+            raycast.raycast[pixelX][pixelY][2] = 0;
+        }
+        //raycast.raycast[pixelX][pixelY][0] = lightness*255;
+        //raycast.raycast[pixelX][pixelY][1] = lightness*255;
+        //raycast.raycast[pixelX][pixelY][2] = lightness*255;
     };
 
 
 #ifdef MADRONA_GPU_MODE
-    int32_t idx = threadIdx.x;
+    int32_t idx = threadIdx.x % 32;
+    //4 threads per ray
+    int32_t subgroup = idx / 4;
+    //printf("dispatch %d,%d,%d,%d\n",ctx.worldID().idx,threadIdx.x,threadIdx.y,threadIdx.z);
+    const int32_t mwgpu_warp_id = threadIdx.x / 32;
+    const int32_t mwgpu_warp_lane = threadIdx.x % 32;
 
-    if (idx < 256) {
-        for(int32_t rays = 0;rays<16;rays++){
-            traceRay(idx*16+rays);
+    if (idx < 32) {
+        for(int32_t rays = 0;rays<512;rays++){
+            traceRay(subgroup*512+rays,idx %4);
         }
     }
 #else
     for (CountT i = 0; i < consts::rayObservationWidth * consts::rayObservationHeight; i++) {
-        traceRay(i);
+        traceRay(i,0);
     }
 #endif
 }
@@ -687,9 +703,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
             Action,
             Rotation,
             Position,
-            AgentCamera,
-            ExternalForce,
-            ExternalTorque
+            AgentCamera
         >>({});
     auto test_sys = builder.addToGraph<ParallelForNode<Engine,
         testerSystem,
@@ -806,7 +820,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
         >>({reset_sys});
 #ifdef MADRONA_GPU_MODE
     auto raycast = builder.addToGraph<CustomParallelForNode<Engine,
-        raycastSystem, 256, 1,
+        raycastSystem, 32, 1,
 #else
     auto raycast = builder.addToGraph<ParallelForNode<Engine,
             raycastSystem,
@@ -848,8 +862,6 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
         builder, {sort_phys_objects});
     auto sort_walls = queueSortByWorld<DoorEntity>(
         builder, {sort_buttons});
-    auto sort_constraints = queueSortByWorld<ConstraintData>(
-        builder, {sort_walls});
     (void)sort_walls;
 #else
     (void)collect_obs;
@@ -868,11 +880,11 @@ Sim::Sim(Engine &ctx,
         consts::numRooms * (consts::maxEntitiesPerRoom + 3) +
         4; // side walls + floor
 
-    phys::RigidBodyPhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
+    /*phys::RigidBodyPhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
         consts::deltaT, consts::numPhysicsSubsteps, -9.8f * math::up,
         max_total_entities, max_total_entities * max_total_entities / 2,
         consts::numAgents);
-
+    */
     initRandKey = cfg.initRandKey;
     autoReset = cfg.autoReset;
 

@@ -54,7 +54,6 @@ struct Sim : public madrona::WorldBase {
     struct Config {
         bool autoReset;
         RandKey initRandKey;
-        madrona::phys::ObjectManager *rigidBodyObjMgr;
         const madrona::render::RenderECSBridge *renderBridge;
         const madrona::phys::MeshBVH* bvh;
     };

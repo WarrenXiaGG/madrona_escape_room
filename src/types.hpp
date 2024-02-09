@@ -3,7 +3,6 @@
 #include <madrona/components.hpp>
 #include <madrona/math.hpp>
 #include <madrona/rand.hpp>
-#include <madrona/physics.hpp>
 #include <madrona/render/ecs.hpp>
 
 #include "consts.hpp"
@@ -18,10 +17,6 @@ namespace madEscape {
     using madrona::base::Rotation;
     using madrona::base::Scale;
     using madrona::base::ObjectID;
-    using madrona::phys::Velocity;
-    using madrona::phys::ResponseType;
-    using madrona::phys::ExternalForce;
-    using madrona::phys::ExternalTorque;
 
 // WorldReset is a per-world singleton component that causes the current
 // episode to be terminated and the world regenerated
@@ -226,15 +221,7 @@ namespace madEscape {
             Position,
             Rotation,
             Scale,
-            Velocity,
             ObjectID,
-            ResponseType,
-            madrona::phys::solver::SubstepPrevState,
-            madrona::phys::solver::PreSolvePositional,
-            madrona::phys::solver::PreSolveVelocity,
-            ExternalForce,
-            ExternalTorque,
-            madrona::phys::broadphase::LeafID,
 
             // Internal logic state.
             GrabState,
@@ -275,15 +262,7 @@ struct DoorEntity : public madrona::Archetype<
     Position, 
     Rotation,
     Scale,
-    Velocity,
     ObjectID,
-    ResponseType,
-    madrona::phys::solver::SubstepPrevState,
-    madrona::phys::solver::PreSolvePositional,
-    madrona::phys::solver::PreSolveVelocity,
-    ExternalForce,
-    ExternalTorque,
-    madrona::phys::broadphase::LeafID,
     OpenState,
     DoorProperties,
     EntityType,
@@ -308,15 +287,7 @@ struct PhysicsEntity : public madrona::Archetype<
     Position, 
     Rotation,
     Scale,
-    Velocity,
     ObjectID,
-    ResponseType,
-    madrona::phys::solver::SubstepPrevState,
-    madrona::phys::solver::PreSolvePositional,
-    madrona::phys::solver::PreSolveVelocity,
-    ExternalForce,
-    ExternalTorque,
-    madrona::phys::broadphase::LeafID,
     EntityType,
     madrona::render::Renderable
 > {};
