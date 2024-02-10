@@ -568,13 +568,18 @@ inline void raycastSystem(Engine &ctx,
             lightness += 0.005;
         }
         //if(idx == 0)
+#ifdef MADRONA_GPU_MODE
+       // if(ctx.worldID().idx ==0){
+         //   printf("%d,%d,%d\n",threadIdx.x,pixelX,pixelY);
+        //}
+#endif
         //printf("%d,%f,%f,%f\n",ctx.worldID().idx,normal.x,normal.y,normal.z);
 
         if (hit && subthread == 0) {
             raycast.raycast[pixelX][pixelY][0] = (normal.x * 0.5 + 0.5) * 255;
             raycast.raycast[pixelX][pixelY][1] = (normal.y * 0.5 + 0.5) * 255;
             raycast.raycast[pixelX][pixelY][2] = (normal.z * 0.5 + 0.5) * 255;
-        }else{
+        }else if(subthread == 0){
             raycast.raycast[pixelX][pixelY][0] = 0;
             raycast.raycast[pixelX][pixelY][1] = 0;
             raycast.raycast[pixelX][pixelY][2] = 0;
@@ -586,16 +591,16 @@ inline void raycastSystem(Engine &ctx,
 
 
 #ifdef MADRONA_GPU_MODE
-    int32_t idx = threadIdx.x % 32;
+    int32_t idx = threadIdx.x;
     //4 threads per ray
     int32_t subgroup = idx / 4;
     //printf("dispatch %d,%d,%d,%d\n",ctx.worldID().idx,threadIdx.x,threadIdx.y,threadIdx.z);
     const int32_t mwgpu_warp_id = threadIdx.x / 32;
     const int32_t mwgpu_warp_lane = threadIdx.x % 32;
 
-    if (idx < 32) {
-        for(int32_t rays = 0;rays<512;rays++){
-            traceRay(subgroup*512+rays,idx %4);
+    if (idx < 256) {
+        for(int32_t rays = 0;rays<64;rays++){
+            traceRay(subgroup*64+rays,idx %4);
         }
     }
 #else
@@ -820,7 +825,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
         >>({reset_sys});
 #ifdef MADRONA_GPU_MODE
     auto raycast = builder.addToGraph<CustomParallelForNode<Engine,
-        raycastSystem, 32, 1,
+        raycastSystem, 256, 1,
 #else
     auto raycast = builder.addToGraph<ParallelForNode<Engine,
             raycastSystem,
@@ -838,7 +843,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
     // The 32, 1 parameters could be changed to 32, 32 to create a system
     // that cooperatively processes 32 entities within a warp.
     auto lidar = builder.addToGraph<CustomParallelForNode<Engine,
-        lidarSystem, 32, 1,
+        lidarSystem, 256, 1,
 #else
     auto lidar = builder.addToGraph<ParallelForNode<Engine,
         lidarSystem,
