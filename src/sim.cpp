@@ -604,9 +604,9 @@ inline void raycastSystem(Engine &ctx,
         }
     }
 #else
-    for (CountT i = 0; i < consts::rayObservationWidth * consts::rayObservationHeight; i++) {
-        traceRay(i,0);
-    }
+        for (CountT i = 0; i < consts::rayObservationWidth * consts::rayObservationHeight; i++) {
+            traceRay(i, 0);
+        }
 #endif
 }
 
@@ -870,6 +870,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
     (void)sort_walls;
 #else
     (void)collect_obs;
+    (void) raycast;
 #endif
 }
 

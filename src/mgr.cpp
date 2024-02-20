@@ -8,6 +8,7 @@
 #include <madrona/mw_cpu.hpp>
 #include <madrona/render/api.hpp>
 #include <madrona/mesh_bvh.hpp>
+#include <madrona/mesh_bvh3.hpp>
 #include <madrona/physics_assets.hpp>
 
 #include <array>
@@ -423,6 +424,59 @@ Manager::Impl * Manager::Impl::init(
                              tmp_alloc,
                              bvh,
                              &numBytes);
+    printf("%d,%d\n",sizeof(MeshBVH::Node),sizeof(MeshBVH2::Node));
+
+
+    auto* bvh2 = (MeshBVH2*)malloc(sizeof(MeshBVH2));
+    auto* compressedNodes = (MeshBVH2::Node*)malloc(sizeof(MeshBVH2::Node) * bvh->numNodes);
+    for(int i=0;i< bvh->numNodes;i++){
+        float minX = FLT_MAX,
+        minY = FLT_MAX,
+        minZ = FLT_MAX,
+        maxX = FLT_MIN,
+        maxY = FLT_MIN,
+        maxZ = FLT_MIN;
+
+        for(int i2=0;i2<MeshBVH2::nodeWidth;i2++){
+            if(bvh->nodes[i].hasChild(i2)) {
+                minX = fminf(minX, bvh->nodes[i].minX[i2]);
+                minY = fminf(minY, bvh->nodes[i].minY[i2]);
+                minZ = fminf(minZ, bvh->nodes[i].minZ[i2]);
+                maxX = fmaxf(maxX, bvh->nodes[i].maxX[i2]);
+                maxY = fmaxf(maxY, bvh->nodes[i].maxY[i2]);
+                maxZ = fmaxf(maxZ, bvh->nodes[i].maxZ[i2]);
+            }
+        }
+        //printf("%f,%f,%f | %f,%f,%f\n",minX,minY,minZ,maxX,maxY,maxZ);
+
+        int8_t ex = ceilf(log2f((maxX-minX)/(powf(2, 8) - 1)));
+        int8_t ey = ceilf(log2f((maxY-minY)/(powf(2, 8) - 1)));
+        int8_t ez = ceilf(log2f((maxZ-minZ)/(powf(2, 8) - 1)));
+        //printf("%d,%d,%d\n",ex,ey,ez);
+        compressedNodes[i].minX = minX;
+        compressedNodes[i].minY = minY;
+        compressedNodes[i].minZ = minZ;
+        compressedNodes[i].expX = ex;
+        compressedNodes[i].expY = ey;
+        compressedNodes[i].expZ = ez;
+        compressedNodes[i].parentID = bvh->nodes[i].parentID;
+        for(int i2=0;i2<MeshBVH2::nodeWidth;i2++){
+            compressedNodes[i].qMinX[i2] = floorf((bvh->nodes[i].minX[i2] - minX) / powf(2, ex));
+            compressedNodes[i].qMinY[i2] = floorf((bvh->nodes[i].minY[i2] - minY) / powf(2, ey));
+            compressedNodes[i].qMinZ[i2] = floorf((bvh->nodes[i].minZ[i2] - minZ) / powf(2, ez));
+            compressedNodes[i].qMaxX[i2] = ceilf((bvh->nodes[i].maxX[i2] - minX) / powf(2, ex));
+            compressedNodes[i].qMaxY[i2] = ceilf((bvh->nodes[i].maxY[i2] - minY) / powf(2, ey));
+            compressedNodes[i].qMaxZ[i2] = ceilf((bvh->nodes[i].maxZ[i2] - minZ) / powf(2, ez));
+            compressedNodes[i].children[i2] = bvh->nodes[i].children[i2];
+        }
+    }
+    bvh2->nodes = compressedNodes;
+    bvh2->numNodes = bvh->numNodes;
+    bvh2->leafGeos = (MeshBVH2::LeafGeometry*)bvh->leafGeos;
+    bvh2->leafMats = (MeshBVH2::LeafMaterial*)bvh->leafMats;
+    bvh2->vertices = bvh->vertices;
+    bvh2->numVerts = bvh->numVerts;
+    bvh2->numLeaves = bvh->numLeaves;
 
     switch (mgr_cfg.execMode) {
     case ExecMode::CUDA: {
@@ -450,20 +504,20 @@ Manager::Impl * Manager::Impl::init(
         }
 
 
-        sim_cfg.bvh = (MeshBVH*)cu::allocGPU(sizeof(MeshBVH));
-        auto* nodes = (MeshBVH::Node*)cu::allocGPU(sizeof(MeshBVH::Node)*bvh->numNodes);
+        sim_cfg.bvh = (BVH_IMPLEMENTATION*)cu::allocGPU(sizeof(BVH_IMPLEMENTATION));
+        auto* nodes = (BVH_IMPLEMENTATION::Node*)cu::allocGPU(sizeof(BVH_IMPLEMENTATION::Node)*bvh->numNodes);
         auto* leafGeos = (MeshBVH::LeafGeometry*)cu::allocGPU(sizeof(MeshBVH::LeafGeometry)*bvh->numLeaves);
         auto* leafMats = (MeshBVH::LeafMaterial*)cu::allocGPU(sizeof(MeshBVH::MeshBVH::LeafMaterial)*bvh->numLeaves);
         auto* vertices = (Vector3*)cu::allocGPU(sizeof(Vector3)*bvh->numVerts);
-        REQ_CUDA(cudaMemcpy(nodes,bvh->nodes,sizeof(MeshBVH::Node)*bvh->numNodes,cudaMemcpyHostToDevice));
+        REQ_CUDA(cudaMemcpy(nodes,bvh2->nodes,sizeof(BVH_IMPLEMENTATION::Node)*bvh2->numNodes,cudaMemcpyHostToDevice));
         REQ_CUDA(cudaMemcpy(leafGeos,bvh->leafGeos,sizeof(MeshBVH::LeafGeometry)*bvh->numLeaves,cudaMemcpyHostToDevice));
         REQ_CUDA(cudaMemcpy(leafMats,bvh->leafMats,sizeof(MeshBVH::MeshBVH::LeafMaterial)*bvh->numLeaves,cudaMemcpyHostToDevice));
         REQ_CUDA(cudaMemcpy(vertices,bvh->vertices,sizeof(Vector3)*bvh->numVerts,cudaMemcpyHostToDevice));
-        bvh->vertices = vertices;
-        bvh->leafMats = leafMats;
-        bvh->nodes = nodes;
-        bvh->leafGeos = leafGeos;
-        REQ_CUDA(cudaMemcpy((MeshBVH*)(sim_cfg.bvh),(MeshBVH*)bvh,sizeof(MeshBVH),cudaMemcpyHostToDevice));
+        bvh2->vertices = vertices;
+        bvh2->leafMats = (BVH_IMPLEMENTATION::LeafMaterial*)leafMats;
+        bvh2->nodes = nodes;
+        bvh2->leafGeos = (BVH_IMPLEMENTATION::LeafGeometry*)leafGeos;
+        REQ_CUDA(cudaMemcpy((BVH_IMPLEMENTATION*)(sim_cfg.bvh),(BVH_IMPLEMENTATION*)bvh2,sizeof(BVH_IMPLEMENTATION),cudaMemcpyHostToDevice));
 
 
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
@@ -522,8 +576,19 @@ Manager::Impl * Manager::Impl::init(
         } else {
             sim_cfg.renderBridge = nullptr;
         }
-        sim_cfg.bvh = bvh;
+        sim_cfg.bvh = bvh2;
 
+        int counts[] = {0,0,0,0,0};
+        for(int i=0;i<bvh->numNodes;i++){
+            int count = 0;
+            for(int i2=0;i2<MeshBVH::nodeWidth;i2++){
+                if(bvh->nodes[i].hasChild(i2)){
+                    count++;
+                }
+            }
+            counts[count] += 1;
+        }
+        printf("[%d,%d,%d,%d,%d],%d",counts[0],counts[1],counts[2],counts[3],counts[4],bvh->numNodes);
         for(int i=0;i<MeshBVH::nodeWidth;i++){
             printf("child %d,%d\n",(bvh->nodes)[672].children[i],bvh->nodes[672].isLeaf(i));
         }
