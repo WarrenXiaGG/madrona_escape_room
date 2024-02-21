@@ -19,12 +19,12 @@ inline Quat eulerToQuat(float yaw,float pitch) {
     float ex = pitch;
     float ey = 0;
     float ez = yaw;
-    double sx = sin(ex * 0.5);
-    double cx = cos(ex * 0.5);
-    double sy = sin(ey * 0.5);
-    double cy = cos(ey * 0.5);
-    double sz = sin(ez * 0.5);
-    double cz = cos(ez * 0.5);
+    float sx = sinf(ex * 0.5f);
+    float cx = cosf(ex * 0.5f);
+    float sy = sinf(ey * 0.5f);
+    float cy = cosf(ey * 0.5f);
+    float sz = sinf(ez * 0.5f);
+    float cz = cosf(ez * 0.5f);
 
     ex = (float)(cy * sx * cz - sy * cx * sz);
     ey = (float)(sy * cx * cz + cy * sx * sz);
@@ -167,7 +167,7 @@ inline void movementSystem(Engine &ctx,
     int actionY = action.y - 1;
     Vector3 walkVec = cur_rot.rotateVec({(float)actionY,(float)actionX,0});
     walkVec = walkVec.length2() == 0 ? Vector3{0,0,0} : walkVec.normalize();
-    walkVec *= 0.8;
+    walkVec *= 0.8f;
 
     Vector3 newVelocity = {0,0,0};
     newVelocity.x =  walkVec.x;
@@ -551,8 +551,8 @@ inline void raycastSystem(Engine &ctx,
     auto traceRay = [&](int32_t idx, int32_t subthread) {
         int pixelY = idx / consts::rayObservationWidth;
         int pixelX = idx % consts::rayObservationWidth;
-        double v = double(pixelY) / consts::rayObservationHeight;
-        double u = double(pixelX) / consts::rayObservationWidth;
+        float v = ((float)pixelY) / consts::rayObservationHeight;
+        float u = ((float)pixelX) / consts::rayObservationWidth;
 
         Vector3 ray_dir = lower_left_corner + u * horizontal + v*vertical - ray_start;
         ray_dir = ray_dir.normalize();
@@ -576,9 +576,9 @@ inline void raycastSystem(Engine &ctx,
         //printf("%d,%f,%f,%f\n",ctx.worldID().idx,normal.x,normal.y,normal.z);
 
         if (hit && subthread == 0) {
-            raycast.raycast[pixelX][pixelY][0] = (normal.x * 0.5 + 0.5) * 255;
-            raycast.raycast[pixelX][pixelY][1] = (normal.y * 0.5 + 0.5) * 255;
-            raycast.raycast[pixelX][pixelY][2] = (normal.z * 0.5 + 0.5) * 255;
+            raycast.raycast[pixelX][pixelY][0] = (normal.x * 0.5f + 0.5f) * 255;
+            raycast.raycast[pixelX][pixelY][1] = (normal.y * 0.5f + 0.5f) * 255;
+            raycast.raycast[pixelX][pixelY][2] = (normal.z * 0.5f + 0.5f) * 255;
         }else if(subthread == 0){
             raycast.raycast[pixelX][pixelY][0] = 0;
             raycast.raycast[pixelX][pixelY][1] = 0;
