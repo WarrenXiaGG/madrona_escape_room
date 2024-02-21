@@ -599,8 +599,8 @@ inline void raycastSystem(Engine &ctx,
     const int32_t mwgpu_warp_lane = threadIdx.x % 32;
 
     if (idx < 256) {
-        for(int32_t rays = 0;rays<64;rays++){
-            traceRay(subgroup*64+rays,idx %4);
+        for(int32_t rays = 0;rays<16;rays++){
+            traceRay(idx*16+rays,0);
         }
     }
 #else
