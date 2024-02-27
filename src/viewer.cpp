@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
             print_ptr = nullptr;
         #endif
 
-        auto raycastTensor = (RaycastObservation*)(mgr.raycastTensor().devicePtr());
+        auto raycastTensor = (render::RenderOutput*)(mgr.raycastTensor().devicePtr());
         raycastTensor = raycastTensor + (viewer.getCurrentWorldID() * consts::numAgents) + (std::max(viewer.getCurrentViewID(), (CountT)0));
         //printf("%x\n",raycastTensor);
         if(exec_mode == ExecMode::CUDA){
@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
                 cudaMemcpy(print_ptr, raycastTensor,
                    1 * sizeof(RaycastObservation),
                    cudaMemcpyDeviceToHost);
-                raycastTensor = (RaycastObservation*)print_ptr;
+                raycastTensor = (render::RenderOutput*)print_ptr;
             #else
 
             #endif
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < consts::rayObservationWidth; i++) {
             for (int j = 0; j < consts::rayObservationHeight; j++) {
                 //unsigned char gammaColor = depth[i][j];//powf(depth[i][j]/255.0,1/2.2)*255;
-                auto realColor = IM_COL32(raycasters->raycast[i][j][0], raycasters->raycast[i][j][1], raycasters->raycast[i][j][2], 255);
+                auto realColor = IM_COL32(raycasters->output[i][j][0], raycasters->output[i][j][1], raycasters->output[i][j][2], 255);
                 draw2->AddRectFilled({  (i * pixScale) + windowPos.x, (j * pixScale) + windowPos.y +vertOff }, { ((i + 1) * pixScale) + windowPos.x,   ((j + 1) * pixScale)+ +windowPos.y+vertOff },
                     realColor, 0, 0);
             }

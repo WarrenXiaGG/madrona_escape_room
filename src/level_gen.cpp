@@ -70,6 +70,8 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
     ctx.get<ObjectID>(e) = {(int32_t)SimObject::Dust2};
     render::RenderingSystem::makeEntityRenderable(ctx,e);
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = (void*)ctx.data().bvh;
+
     // Create the floor entity, just a simple static plane.
     /*ctx.data().floorPlane = ctx.makeRenderableEntity<PhysicsEntity>();
     setupRigidBodyEntity(
@@ -157,6 +159,7 @@ void createPersistentEntities(Engine &ctx)
                     90.f, 0.001f,
                     { 0,0,0 });
             render::RenderingSystem::makeEntityRenderable(ctx,agent);
+            ctx.get<render::BVHModel>(ctx.get<render::Renderable>(agent).renderEntity).ptr = (void*)ctx.data().bvh;
         }
 
         ctx.get<Scale>(agent) = Diag3x3 { 1, 1, 1 };

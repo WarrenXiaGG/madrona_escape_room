@@ -1,6 +1,5 @@
 #include "mgr.hpp"
 #include "sim.hpp"
-
 #include <madrona/utils.hpp>
 #include <madrona/importer.hpp>
 #include <madrona/physics_loader.hpp>
@@ -412,17 +411,74 @@ Manager::Impl * Manager::Impl::init(
     auto collision_assets = imp::ImportedAssets::importFromDisk(
         collision_asset_cstrs, Span<char>(import_err.data(), import_err.size()));
 
-    if (!collision_assets.has_value()) {
+    if (!collision_assets.has_value()) { 
         FATAL("Failed to load collision meshes: %s", import_err);
     }
 
     auto* bvh = (MeshBVH*)malloc(sizeof(MeshBVH));
+    std::string path = (std::filesystem::path(DATA_DIR) / "out.bin").string();
+    std::ifstream infile;
+    infile.open(path, std::ios::binary | std::ios::in);
+    int32_t numNodes;
+    infile.read((char*)&numNodes,sizeof(int32_t));
+    int numLeafs;
+    infile.read((char*)&numLeafs,sizeof(int32_t));
+    int numVerts;
+    infile.read((char*)&numVerts,sizeof(int32_t));
+    bvh->numLeaves = numLeafs;
+    bvh->numNodes = numNodes;
+    bvh->numVerts = numVerts;
+    auto* nodes = (MeshBVH::Node*)malloc(sizeof(MeshBVH::Node)*numNodes);
+    infile.read((char*)nodes,sizeof(MeshBVH::Node)*numNodes);
+    auto* leafGeos = (MeshBVH::LeafGeometry*)malloc(sizeof(MeshBVH::LeafGeometry)*numLeafs);
+    infile.read((char*)leafGeos,sizeof(MeshBVH::LeafGeometry)*numLeafs);
+    auto* leafMats = (MeshBVH::LeafMaterial*)malloc(sizeof(MeshBVH::LeafMaterial)*numLeafs);
+    infile.read((char*)leafMats,sizeof(MeshBVH::LeafMaterial)*numLeafs);
+    auto* vertices = (Vector3*)malloc(sizeof(Vector3)*numVerts);
+    infile.read((char*)vertices,sizeof(Vector3)*numVerts);
+    infile.close();
+    bvh->leafMats = leafMats;
+    bvh->leafGeos = leafGeos;
+    bvh->nodes = nodes;
+    bvh->vertices = vertices;
+
+    /*
     StackAlloc tmp_alloc;
     CountT numBytes;
     MeshBVHBuilder::build(collision_assets->objects[0].meshes,
                              tmp_alloc,
                              bvh,
                              &numBytes);
+    int childrenCounts[]{0,0,0,0,0};
+    int leafCounts[]{0,0,0,0,0,0,0,0,0};
+    for(int i=0;i<bvh->numNodes;i++){
+        int sum = 0;
+        for(int i2 =0;i2<4;i2++) {
+            if(bvh->nodes[i].hasChild(i2)){
+                sum++;
+            }
+        }
+        childrenCounts[sum]++;
+    }
+    for(int i=0;i<bvh->numLeaves;i++){
+        int sum = 0;
+        for(int i2 =0;i2<8;i2++) {
+            if(bvh->leafGeos[i].packedIndices[i2] != 0xFFFF'FFFF'FFFF'FFFF){
+                sum++;
+            }
+        }
+        leafCounts[sum]++;
+    }
+    for(int i=0;i<5;i++){
+        printf("COunts: %d,%d,%d,%d,%d\n",childrenCounts[0],childrenCounts[1],childrenCounts[2],
+               childrenCounts[3],childrenCounts[4]);
+    }
+    for(int i=0;i<9;i++){
+        printf("COunts: %d,%d,%d,%d,%d,%d,%d,%d\n",leafCounts[0],leafCounts[1],leafCounts[2],
+               leafCounts[3],leafCounts[4],leafCounts[5],leafCounts[6],leafCounts[7]);
+    }
+    printf("%d,%d",sizeof(MeshBVH::Node),sizeof(MeshBVH::LeafGeometry));*/
+
 
     switch (mgr_cfg.execMode) {
     case ExecMode::CUDA: {
@@ -735,7 +791,7 @@ Tensor Manager::raycastTensor() const
                                Tensor::ElementType::UInt8,
                                {
                                    impl_->cfg.numWorlds*consts::numAgents,
-                                   sizeof(RaycastObservation),
+                                   sizeof(render::RenderOutput),
                                });
 }
 

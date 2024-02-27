@@ -94,7 +94,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         (uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>(
         (uint32_t)ExportID::Done);
-    registry.exportColumn<Agent, RaycastObservation>(
+    registry.exportColumn<render::RenderCameraArchetype, render::RenderOutput>(
         (uint32_t)ExportID::Raycast);
 }
 
@@ -823,7 +823,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
             RoomEntityObservations,
             DoorObservation
         >>({reset_sys});
-#ifdef MADRONA_GPU_MODE
+/*#ifdef MADRONA_GPU_MODE
     auto raycast = builder.addToGraph<CustomParallelForNode<Engine,
         raycastSystem, 256, 1,
 #else
@@ -834,7 +834,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
             RaycastObservation,
             AgentCamera,
             Position
-        >>({reset_sys});
+        >>({reset_sys});*/
 
     // The lidar system
 /*#ifdef MADRONA_GPU_MODE
