@@ -153,14 +153,12 @@ void createPersistentEntities(Engine &ctx)
         auto camera = ctx.makeEntity<DetatchedCamera>();
             ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = 0, .pitch = 0 };
         // Create a render view for the agent
-        if (ctx.data().enableRender) {
             render::RenderingSystem::attachEntityToView(ctx,
                     camera,
                     90.f, 0.001f,
                     { 0,0,0 });
             render::RenderingSystem::makeEntityRenderable(ctx,agent);
             ctx.get<render::BVHModel>(ctx.get<render::Renderable>(agent).renderEntity).ptr = (void*)ctx.data().bvh;
-        }
 
         ctx.get<Scale>(agent) = Diag3x3 { 1, 1, 1 };
         ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObject::Agent };
