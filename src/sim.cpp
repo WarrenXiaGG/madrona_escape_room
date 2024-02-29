@@ -560,7 +560,7 @@ inline void raycastSystem(Engine &ctx,
         float t;
         Vector3 normal = {0,0,0};
         //(madrona::phys2::MeshBVH*)(ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
-        bool hit = (ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
+        //bool hit = (ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
         Vector3 lightDir = Vector3{0.5,0.5,0.5};
         lightDir = lightDir.normalize();
         float lightness = normal.dot(lightDir);
@@ -575,7 +575,7 @@ inline void raycastSystem(Engine &ctx,
 #endif
         //printf("%d,%f,%f,%f\n",ctx.worldID().idx,normal.x,normal.y,normal.z);
 
-        if (hit && subthread == 0) {
+        if (true && subthread == 0) {
             raycast.raycast[pixelX][pixelY][0] = (normal.x * 0.5f + 0.5f) * 255;
             raycast.raycast[pixelX][pixelY][1] = (normal.y * 0.5f + 0.5f) * 255;
             raycast.raycast[pixelX][pixelY][2] = (normal.z * 0.5f + 0.5f) * 255;

@@ -6,7 +6,7 @@
 #include <madrona/tracing.hpp>
 #include <madrona/mw_cpu.hpp>
 #include <madrona/render/api.hpp>
-#include <madrona/mesh_bvh.hpp>
+#include <madrona/mesh_bvh3.hpp>
 #include <madrona/physics_assets.hpp>
 
 #include <array>
@@ -186,7 +186,7 @@ struct Manager::CUDAImpl final : Manager::Impl {
 };
 #endif
 
-static void loadRenderObjects(render::RenderManager &render_mgr,MeshBVH** bvh)
+static void loadRenderObjects(render::RenderManager &render_mgr)
 {
     std::array<std::string, (size_t)SimObject::NumObjects> render_asset_paths;
     render_asset_paths[(size_t)SimObject::Cube] =
@@ -393,6 +393,7 @@ static void loadPhysicsObjects(PhysicsLoader &loader)
     free(rigid_body_data);
 }
 
+#define BVH_IMPLEMENTATION MeshBVH2
 Manager::Impl * Manager::Impl::init(
     const Manager::Config &mgr_cfg)
 {
@@ -415,8 +416,8 @@ Manager::Impl * Manager::Impl::init(
         FATAL("Failed to load collision meshes: %s", import_err);
     }
 
-    auto* bvh = (MeshBVH*)malloc(sizeof(MeshBVH));
-    std::string path = (std::filesystem::path(DATA_DIR) / "out.bin").string();
+    auto* bvh = (BVH_IMPLEMENTATION*)malloc(sizeof(BVH_IMPLEMENTATION));
+    std::string path = (std::filesystem::path(DATA_DIR) / "funkyquant.bin").string();
     std::ifstream infile;
     infile.open(path, std::ios::binary | std::ios::in);
     int32_t numNodes;
@@ -428,12 +429,12 @@ Manager::Impl * Manager::Impl::init(
     bvh->numLeaves = numLeafs;
     bvh->numNodes = numNodes;
     bvh->numVerts = numVerts;
-    auto* nodes = (MeshBVH::Node*)malloc(sizeof(MeshBVH::Node)*numNodes);
-    infile.read((char*)nodes,sizeof(MeshBVH::Node)*numNodes);
-    auto* leafGeos = (MeshBVH::LeafGeometry*)malloc(sizeof(MeshBVH::LeafGeometry)*numLeafs);
-    infile.read((char*)leafGeos,sizeof(MeshBVH::LeafGeometry)*numLeafs);
-    auto* leafMats = (MeshBVH::LeafMaterial*)malloc(sizeof(MeshBVH::LeafMaterial)*numLeafs);
-    infile.read((char*)leafMats,sizeof(MeshBVH::LeafMaterial)*numLeafs);
+    auto* nodes = (BVH_IMPLEMENTATION::Node*)malloc(sizeof(BVH_IMPLEMENTATION::Node)*numNodes);
+    infile.read((char*)nodes,sizeof(BVH_IMPLEMENTATION::Node)*numNodes);
+    auto* leafGeos = (BVH_IMPLEMENTATION::LeafGeometry*)malloc(sizeof(BVH_IMPLEMENTATION::LeafGeometry)*numLeafs);
+    infile.read((char*)leafGeos,sizeof(BVH_IMPLEMENTATION::LeafGeometry)*numLeafs);
+    auto* leafMats = (BVH_IMPLEMENTATION::LeafMaterial*)malloc(sizeof(BVH_IMPLEMENTATION::LeafMaterial)*numLeafs);
+    infile.read((char*)leafMats,sizeof(BVH_IMPLEMENTATION::LeafMaterial)*numLeafs);
     auto* vertices = (Vector3*)malloc(sizeof(Vector3)*numVerts);
     infile.read((char*)vertices,sizeof(Vector3)*numVerts);
     infile.close();
@@ -499,27 +500,27 @@ Manager::Impl * Manager::Impl::init(
             initRenderManager(mgr_cfg, render_gpu_state);
 
         if (render_mgr.has_value()) {
-            loadRenderObjects(*render_mgr,&bvh);
+            loadRenderObjects(*render_mgr);
             sim_cfg.renderBridge = render_mgr->bridge();
         } else {
             sim_cfg.renderBridge = nullptr;
         }
 
 
-        sim_cfg.bvh = (MeshBVH*)cu::allocGPU(sizeof(MeshBVH));
-        auto* nodes = (MeshBVH::Node*)cu::allocGPU(sizeof(MeshBVH::Node)*bvh->numNodes);
-        auto* leafGeos = (MeshBVH::LeafGeometry*)cu::allocGPU(sizeof(MeshBVH::LeafGeometry)*bvh->numLeaves);
-        auto* leafMats = (MeshBVH::LeafMaterial*)cu::allocGPU(sizeof(MeshBVH::MeshBVH::LeafMaterial)*bvh->numLeaves);
+        sim_cfg.bvh = (void*)cu::allocGPU(sizeof(BVH_IMPLEMENTATION));
+        auto* nodes = (BVH_IMPLEMENTATION::Node*)cu::allocGPU(sizeof(BVH_IMPLEMENTATION::Node)*bvh->numNodes);
+        auto* leafGeos = (BVH_IMPLEMENTATION::LeafGeometry*)cu::allocGPU(sizeof(BVH_IMPLEMENTATION::LeafGeometry)*bvh->numLeaves);
+        auto* leafMats = (BVH_IMPLEMENTATION::LeafMaterial*)cu::allocGPU(sizeof(BVH_IMPLEMENTATION::LeafMaterial)*bvh->numLeaves);
         auto* vertices = (Vector3*)cu::allocGPU(sizeof(Vector3)*bvh->numVerts);
-        REQ_CUDA(cudaMemcpy(nodes,bvh->nodes,sizeof(MeshBVH::Node)*bvh->numNodes,cudaMemcpyHostToDevice));
-        REQ_CUDA(cudaMemcpy(leafGeos,bvh->leafGeos,sizeof(MeshBVH::LeafGeometry)*bvh->numLeaves,cudaMemcpyHostToDevice));
-        REQ_CUDA(cudaMemcpy(leafMats,bvh->leafMats,sizeof(MeshBVH::MeshBVH::LeafMaterial)*bvh->numLeaves,cudaMemcpyHostToDevice));
+        REQ_CUDA(cudaMemcpy(nodes,bvh->nodes,sizeof(BVH_IMPLEMENTATION::Node)*bvh->numNodes,cudaMemcpyHostToDevice));
+        REQ_CUDA(cudaMemcpy(leafGeos,bvh->leafGeos,sizeof(BVH_IMPLEMENTATION::LeafGeometry)*bvh->numLeaves,cudaMemcpyHostToDevice));
+        REQ_CUDA(cudaMemcpy(leafMats,bvh->leafMats,sizeof(BVH_IMPLEMENTATION::LeafMaterial)*bvh->numLeaves,cudaMemcpyHostToDevice));
         REQ_CUDA(cudaMemcpy(vertices,bvh->vertices,sizeof(Vector3)*bvh->numVerts,cudaMemcpyHostToDevice));
         bvh->vertices = vertices;
         bvh->leafMats = leafMats;
         bvh->nodes = nodes;
         bvh->leafGeos = leafGeos;
-        REQ_CUDA(cudaMemcpy((MeshBVH*)(sim_cfg.bvh),(MeshBVH*)bvh,sizeof(MeshBVH),cudaMemcpyHostToDevice));
+        REQ_CUDA(cudaMemcpy((char*)(sim_cfg.bvh),(BVH_IMPLEMENTATION*)bvh,sizeof(BVH_IMPLEMENTATION),cudaMemcpyHostToDevice));
 
 
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
@@ -573,7 +574,7 @@ Manager::Impl * Manager::Impl::init(
             initRenderManager(mgr_cfg, render_gpu_state);
 
         if (render_mgr.has_value()) {
-            loadRenderObjects(*render_mgr,&bvh);
+            loadRenderObjects(*render_mgr);
             sim_cfg.renderBridge = render_mgr->bridge();
         } else {
             sim_cfg.renderBridge = nullptr;
