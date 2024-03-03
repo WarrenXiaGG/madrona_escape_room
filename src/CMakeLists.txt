@@ -19,6 +19,18 @@ target_link_libraries(mad_escape_cpu_impl
         madrona_rendering_system
 )
 
+add_library(mad_escape_importer STATIC
+    import.cpp
+    # import.hpp
+)
+
+target_link_libraries(mad_escape_importer
+    PRIVATE
+        madrona_libcxx
+    PUBLIC
+        simdjson::simdjson
+)
+
 add_library(mad_escape_mgr STATIC
     mgr.hpp mgr.cpp
 )
@@ -26,6 +38,7 @@ add_library(mad_escape_mgr STATIC
 target_link_libraries(mad_escape_mgr 
     PUBLIC
         madrona_python_utils
+        mad_escape_importer
     PRIVATE
         mad_escape_cpu_impl
         madrona_mw_cpu
@@ -67,8 +80,12 @@ target_link_libraries(madrona_escape_room PRIVATE
 
 if (TARGET madrona_viz)
     add_executable(viewer viewer.cpp)
-    target_link_libraries(viewer PRIVATE
-        madrona_mw_core mad_escape_mgr madrona_viz)
+    target_link_libraries(viewer 
+        PUBLIC
+        mad_escape_importer mad_escape_mgr 
+        PRIVATE
+        madrona_mw_core madrona_viz)
+
     if (TARGET madrona_cuda)
         target_link_libraries(viewer PRIVATE madrona_cuda)
     endif()
@@ -78,4 +95,4 @@ if (TARGET madrona_viz)
 endif()
 
 add_executable(headless headless.cpp)
-target_link_libraries(headless madrona_mw_core mad_escape_mgr)
+target_link_libraries(headless PUBLIC madrona_mw_core mad_escape_mgr)

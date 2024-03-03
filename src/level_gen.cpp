@@ -35,7 +35,7 @@ static inline void setupRigidBodyEntity(
     Entity e,
     Vector3 pos,
     Quat rot,
-    SimObject sim_obj,
+    SimObjectDefault sim_obj,
     EntityType entity_type,
     Diag3x3 scale = {1, 1, 1})
 {
@@ -55,7 +55,7 @@ static inline void setupRigidBodyEntity(
 static void registerRigidBodyEntity(
     Engine &ctx,
     Entity e,
-    SimObject sim_obj)
+    SimObjectDefault sim_obj)
 {
     ObjectID obj_id { (int32_t)sim_obj };
 }
@@ -68,7 +68,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Position>(e) = Vector3{0,0,0};
     ctx.get<Rotation>(e) = Quat(1,0,0,0);//Rotation::fromAngularVec(Vector3{0,0,0});
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
-    ctx.get<ObjectID>(e) = {(int32_t)SimObject::Dust2};
+    ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Dust2};
     render::RenderingSystem::makeEntityRenderable(ctx,e);
     // Create the floor entity, just a simple static plane.
     /*ctx.data().floorPlane = ctx.makeRenderableEntity<PhysicsEntity>();
@@ -151,16 +151,14 @@ void createPersistentEntities(Engine &ctx)
         auto camera = ctx.makeEntity<DetatchedCamera>();
             ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = 0, .pitch = 0 };
         // Create a render view for the agent
-        if (ctx.data().enableRender) {
-            render::RenderingSystem::attachEntityToView(ctx,
-                    camera,
-                    90.f, 0.001f,
-                    { 0,0,0 });
-            render::RenderingSystem::makeEntityRenderable(ctx,agent);
-        }
+        render::RenderingSystem::attachEntityToView(ctx,
+                camera,
+                90.f, 0.001f,
+                { 0,0,0 });
+        render::RenderingSystem::makeEntityRenderable(ctx,agent);
 
         ctx.get<Scale>(agent) = Diag3x3 { 1, 1, 1 };
-        ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObject::Agent };
+        ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObjectDefault::Agent };
         ctx.get<GrabState>(agent).constraintEntity = Entity::none();
         ctx.get<EntityType>(agent) = EntityType::Agent;
 
@@ -274,14 +272,14 @@ static void makeEndWall(Engine &ctx,
             0,
         },
         Quat { 1, 0, 0, 0 },
-        SimObject::Wall,
+        SimObjectDefault::Wall,
         EntityType::Wall,
         Diag3x3 {
             left_len,
             consts::wallWidth,
             1.75f,
         });
-    registerRigidBodyEntity(ctx, left_wall, SimObject::Wall);
+    registerRigidBodyEntity(ctx, left_wall, SimObjectDefault::Wall);
 
     float right_len =
         consts::worldWidth - door_center - 0.5f * consts::doorWidth;
@@ -295,14 +293,14 @@ static void makeEndWall(Engine &ctx,
             0,
         },
         Quat { 1, 0, 0, 0 },
-        SimObject::Wall,
+        SimObjectDefault::Wall,
         EntityType::Wall,
         Diag3x3 {
             right_len,
             consts::wallWidth,
             1.75f,
         });
-    registerRigidBodyEntity(ctx, right_wall, SimObject::Wall);
+    registerRigidBodyEntity(ctx, right_wall, SimObjectDefault::Wall);
 
     Entity door = ctx.makeRenderableEntity<DoorEntity>();
     setupRigidBodyEntity(
@@ -314,14 +312,14 @@ static void makeEndWall(Engine &ctx,
             0,
         },
         Quat { 1, 0, 0, 0 },
-        SimObject::Door,
+        SimObjectDefault::Door,
         EntityType::Door,
         Diag3x3 {
             consts::doorWidth * 0.8f,
             consts::wallWidth,
             1.75f,
         });
-    registerRigidBodyEntity(ctx, door, SimObject::Door);
+    registerRigidBodyEntity(ctx, door, SimObjectDefault::Door);
     ctx.get<OpenState>(door).isOpen = false;
 
     room.walls[0] = left_wall;
@@ -345,7 +343,7 @@ static Entity makeButton(Engine &ctx,
         consts::buttonWidth,
         0.2f,
     };
-    ctx.get<ObjectID>(button) = ObjectID { (int32_t)SimObject::Button };
+    ctx.get<ObjectID>(button) = ObjectID { (int32_t)SimObjectDefault::Button };
     ctx.get<ButtonState>(button).isPressed = false;
     ctx.get<EntityType>(button) = EntityType::Button;
 
@@ -367,14 +365,14 @@ static Entity makeCube(Engine &ctx,
             1.f * scale,
         },
         Quat { 1, 0, 0, 0 },
-        SimObject::Cube,
+        SimObjectDefault::Cube,
         EntityType::Cube,
         Diag3x3 {
             scale,
             scale,
             scale,
         });
-    registerRigidBodyEntity(ctx, cube, SimObject::Cube);
+    registerRigidBodyEntity(ctx, cube, SimObjectDefault::Cube);
 
     return cube;
 }

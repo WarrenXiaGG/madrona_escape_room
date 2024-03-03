@@ -1,5 +1,6 @@
 #include "mgr.hpp"
 #include "sim.hpp"
+#include "import.hpp"
 
 #include <madrona/utils.hpp>
 #include <madrona/importer.hpp>
@@ -187,27 +188,32 @@ struct Manager::CUDAImpl final : Manager::Impl {
 };
 #endif
 
-static void loadRenderObjects(render::RenderManager &render_mgr,MeshBVH** bvh)
+static void loadRenderObjects(render::RenderManager &render_mgr, MeshBVH** bvh)
 {
-    std::array<std::string, (size_t)SimObject::NumObjects> render_asset_paths;
-    render_asset_paths[(size_t)SimObject::Cube] =
-        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
-    render_asset_paths[(size_t)SimObject::Wall] =
-        (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
-    render_asset_paths[(size_t)SimObject::Door] =
-        (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
-    render_asset_paths[(size_t)SimObject::Agent] =
-        (std::filesystem::path(DATA_DIR) / "agent_render.obj").string();
-    render_asset_paths[(size_t)SimObject::Button] =
-        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
-    render_asset_paths[(size_t)SimObject::Plane] =
-        (std::filesystem::path(DATA_DIR) / "plane.obj").string();
-    render_asset_paths[(size_t)SimObject::Dust2] =
-        (std::filesystem::path(DATA_DIR) / "funky2.obj").string();
-    //render_asset_paths[(size_t)SimObject::Dust2] =
-    //    (std::filesystem::path(DATA_DIR) / "dust2tri.obj").string();
+    // Get the render objects needed from the habitat JSON
+    {
+        std::string scene_path = std::filesystem::path(DATA_DIR) /
+            "hssd-hab/scenes-uncluttered/108736884_177263634.scene_instance.json";
+        auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
+    }
 
-    std::array<const char *, (size_t)SimObject::NumObjects> render_asset_cstrs;
+    std::array<std::string, (size_t)SimObjectDefault::NumObjects> render_asset_paths;
+    render_asset_paths[(size_t)SimObjectDefault::Cube] =
+        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Wall] =
+        (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Door] =
+        (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Agent] =
+        (std::filesystem::path(DATA_DIR) / "agent_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Button] =
+        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Plane] =
+        (std::filesystem::path(DATA_DIR) / "plane.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Dust2] =
+        (std::filesystem::path(DATA_DIR) / "funky2.obj").string();
+
+    std::array<const char *, (size_t)SimObjectDefault::NumObjects> render_asset_cstrs;
     for (size_t i = 0; i < render_asset_paths.size(); i++) {
         render_asset_cstrs[i] = render_asset_paths[i].c_str();
     }
@@ -231,16 +237,16 @@ static void loadRenderObjects(render::RenderManager &render_mgr,MeshBVH** bvh)
     });
 
     // Override materials
-    render_assets->objects[(CountT)SimObject::Cube].meshes[0].materialIDX = 0;
-    render_assets->objects[(CountT)SimObject::Wall].meshes[0].materialIDX = 1;
-    render_assets->objects[(CountT)SimObject::Door].meshes[0].materialIDX = 5;
-    render_assets->objects[(CountT)SimObject::Agent].meshes[0].materialIDX = 2;
-    render_assets->objects[(CountT)SimObject::Agent].meshes[1].materialIDX = 3;
-    render_assets->objects[(CountT)SimObject::Agent].meshes[2].materialIDX = 3;
-    render_assets->objects[(CountT)SimObject::Button].meshes[0].materialIDX = 6;
-    render_assets->objects[(CountT)SimObject::Plane].meshes[0].materialIDX = 4;
-    for(int i =0;i<render_assets->objects[(CountT)SimObject::Dust2].meshes.size();i++) {
-        render_assets->objects[(CountT) SimObject::Dust2].meshes[i].materialIDX = 0;
+    render_assets->objects[(CountT)SimObjectDefault::Cube].meshes[0].materialIDX = 0;
+    render_assets->objects[(CountT)SimObjectDefault::Wall].meshes[0].materialIDX = 1;
+    render_assets->objects[(CountT)SimObjectDefault::Door].meshes[0].materialIDX = 5;
+    render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[0].materialIDX = 2;
+    render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[1].materialIDX = 3;
+    render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[2].materialIDX = 3;
+    render_assets->objects[(CountT)SimObjectDefault::Button].meshes[0].materialIDX = 6;
+    render_assets->objects[(CountT)SimObjectDefault::Plane].meshes[0].materialIDX = 4;
+    for(int i =0;i<render_assets->objects[(CountT)SimObjectDefault::Dust2].meshes.size();i++) {
+        render_assets->objects[(CountT) SimObjectDefault::Dust2].meshes[i].materialIDX = 0;
     }
 
     render_mgr.loadObjects(render_assets->objects, materials, {
@@ -253,33 +259,25 @@ static void loadRenderObjects(render::RenderManager &render_mgr,MeshBVH** bvh)
     render_mgr.configureLighting({
         { true, math::Vector3{1.0f, 1.0f, -2.0f}, math::Vector3{1.0f, 1.0f, 1.0f} }
     });
-
-
-
-
-    /*float t = -1;
-    math::Vector3 normal;
-    out_bvh.traceRay(math::Vector3{0,0,0},math::Vector3{0.5,0.5,0},&t,&normal);
-    printf("%f,%f,%f,%f\n",normal.x,normal.y,normal.z,t);*/
 }
 
 static void loadPhysicsObjects(PhysicsLoader &loader)
 {
-    std::array<std::string, (size_t)SimObject::NumObjects - 1> asset_paths;
-    asset_paths[(size_t)SimObject::Cube] =
+    std::array<std::string, (size_t)SimObjectDefault::NumObjects - 1> asset_paths;
+    asset_paths[(size_t)SimObjectDefault::Cube] =
         (std::filesystem::path(DATA_DIR) / "cube_collision.obj").string();
-    asset_paths[(size_t)SimObject::Wall] =
+    asset_paths[(size_t)SimObjectDefault::Wall] =
         (std::filesystem::path(DATA_DIR) / "wall_collision.obj").string();
-    asset_paths[(size_t)SimObject::Door] =
+    asset_paths[(size_t)SimObjectDefault::Door] =
         (std::filesystem::path(DATA_DIR) / "wall_collision.obj").string();
-    asset_paths[(size_t)SimObject::Agent] =
+    asset_paths[(size_t)SimObjectDefault::Agent] =
         (std::filesystem::path(DATA_DIR) / "agent_collision_simplified.obj").string();
-    asset_paths[(size_t)SimObject::Button] =
+    asset_paths[(size_t)SimObjectDefault::Button] =
         (std::filesystem::path(DATA_DIR) / "cube_collision.obj").string();
-    asset_paths[(size_t)SimObject::Dust2] =
+    asset_paths[(size_t)SimObjectDefault::Dust2] =
        (std::filesystem::path(DATA_DIR) / "cube_collision.obj").string();
 
-    std::array<const char *, (size_t)SimObject::NumObjects - 1> asset_cstrs;
+    std::array<const char *, (size_t)SimObjectDefault::NumObjects - 1> asset_cstrs;
     for (size_t i = 0; i < asset_paths.size(); i++) {
         asset_cstrs[i] = asset_paths[i].c_str();
     }
@@ -297,9 +295,9 @@ static void loadPhysicsObjects(PhysicsLoader &loader)
 
     DynArray<DynArray<SourceCollisionPrimitive>> prim_arrays(0);
     HeapArray<SourceCollisionObject> src_objs(
-        (CountT)SimObject::NumObjects);
+        (CountT)SimObjectDefault::NumObjects);
 
-    auto setupHull = [&](SimObject obj_id,
+    auto setupHull = [&](SimObjectDefault obj_id,
                          float inv_mass,
                          RigidBodyFrictionData friction) {
         auto meshes = imported_src_hulls->objects[(CountT)obj_id].meshes;
@@ -324,32 +322,32 @@ static void loadPhysicsObjects(PhysicsLoader &loader)
         };
     };
 
-    setupHull(SimObject::Cube, 0.075f, {
+    setupHull(SimObjectDefault::Cube, 0.075f, {
         .muS = 0.5f,
         .muD = 0.75f,
     });
 
-    setupHull(SimObject::Wall, 0.f, {
+    setupHull(SimObjectDefault::Wall, 0.f, {
         .muS = 0.5f,
         .muD = 0.5f,
     });
 
-    setupHull(SimObject::Door, 0.f, {
+    setupHull(SimObjectDefault::Door, 0.f, {
         .muS = 0.5f,
         .muD = 0.5f,
     });
 
-    setupHull(SimObject::Agent, 1.f, {
+    setupHull(SimObjectDefault::Agent, 1.f, {
         .muS = 0.5f,
         .muD = 0.5f,
     });
 
-    setupHull(SimObject::Button, 1.f, {
+    setupHull(SimObjectDefault::Button, 1.f, {
         .muS = 0.5f,
         .muD = 0.5f,
     });
 
-    setupHull(SimObject::Dust2, 1.f, {
+    setupHull(SimObjectDefault::Dust2, 1.f, {
         .muS = 0.5f,
         .muD = 0.5f,
     });
@@ -358,7 +356,7 @@ static void loadPhysicsObjects(PhysicsLoader &loader)
         .type = CollisionPrimitive::Type::Plane,
     };
 
-    src_objs[(CountT)SimObject::Plane] = {
+    src_objs[(CountT)SimObjectDefault::Plane] = {
         .prims = Span<const SourceCollisionPrimitive>(&plane_prim, 1),
         .invMass = 0.f,
         .friction = {
@@ -386,9 +384,9 @@ static void loadPhysicsObjects(PhysicsLoader &loader)
     // remain controllable by the policy, they are only allowed to
     // rotate around the Z axis (infinite inertia in x & y axes)
     rigid_body_assets.metadatas[
-        (CountT)SimObject::Agent].mass.invInertiaTensor.x = 0.f;
+        (CountT)SimObjectDefault::Agent].mass.invInertiaTensor.x = 0.f;
     rigid_body_assets.metadatas[
-        (CountT)SimObject::Agent].mass.invInertiaTensor.y = 0.f;
+        (CountT)SimObjectDefault::Agent].mass.invInertiaTensor.y = 0.f;
 
     loader.loadRigidBodies(rigid_body_assets);
     free(rigid_body_data);

@@ -32,7 +32,7 @@ enum class ExportID : uint32_t {
 
 // Stores values for the ObjectID component that links entities to
 // render / physics assets.
-enum class SimObject : uint32_t {
+enum class SimObjectDefault : uint32_t {
     Cube,
     Wall,
     Door,
@@ -42,6 +42,9 @@ enum class SimObject : uint32_t {
     Plane,
     NumObjects,
 };
+
+// This is used for generic rendering objects
+using SimObject = uint32_t;
 
 // The Sim class encapsulates the per-world state of the simulation.
 // Sim is always available by calling ctx.data() given a reference
