@@ -74,28 +74,29 @@ void createPersistentEntities(Engine &ctx)
     render::RenderingSystem::makeEntityRenderable(ctx,e);
 #endif
 
+#if 1
+    printf("there are %d imported instances\n",
+            (int)ctx.data().numImportedInstances);
     for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
         ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
         Entity e_inst = ctx.makeEntity<DummyRenderable>();
-        ctx.get<Position>(e_inst) = imp_inst->position +
-            Vector3{0.f, 50.f, 0.f};
+        ctx.get<Position>(e_inst) = imp_inst->position;
         ctx.get<Rotation>(e_inst) = imp_inst->rotation;
         ctx.get<Scale>(e_inst) = imp_inst->scale;
         ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
         render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
     }
+#endif
 
     // Create the floor entity, just a simple static plane.
-    /*ctx.data().floorPlane = ctx.makeRenderableEntity<PhysicsEntity>();
-    setupRigidBodyEntity(
-        ctx,
-        ctx.data().floorPlane,
-        Vector3 { 0, 0, 0 },
-        Quat { 1, 0, 0, 0 },
-        SimObject::Plane,
-        EntityType::None, // Floor plane type should never be queried
-        ResponseType::Static);
+    Entity e = ctx.data().floorPlane = ctx.makeRenderableEntity<DummyRenderable>();
+    ctx.get<Position>(e) = Vector3{0,0,0};
+    ctx.get<Rotation>(e) = Quat(1,0,0,0);
+    ctx.get<Scale>(e) = Diag3x3{1,1,1};
+    ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Plane};
+    render::RenderingSystem::makeEntityRenderable(ctx,e);
 
+    /*
     // Create the outer wall entities
     // Behind
     ctx.data().borders[0] = ctx.makeRenderableEntity<PhysicsEntity>();

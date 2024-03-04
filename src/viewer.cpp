@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 #endif
 
     WindowManager wm {};
-    WindowHandle window = wm.makeWindow("Escape Room", 1000, 700);
+    WindowHandle window = wm.makeWindow("Escape Room", 1920, 1080);
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
     printf("premanage: \n");

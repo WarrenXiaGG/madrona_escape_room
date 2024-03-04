@@ -80,7 +80,7 @@ static inline Optional<render::RenderManager> initRenderManager(
         .agentViewHeight = mgr_cfg.batchRenderViewHeight,
         .numWorlds = mgr_cfg.numWorlds,
         .maxViewsPerWorld = consts::numAgents,
-        .maxInstancesPerWorld = 1000,
+        .maxInstancesPerWorld = 1024,
         .execMode = mgr_cfg.execMode,
         .voxelCfg = {},
     });
@@ -200,6 +200,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
 
     std::vector<std::string> render_asset_paths;
     render_asset_paths.resize((size_t)SimObjectDefault::NumObjects);
+
     render_asset_paths[(size_t)SimObjectDefault::Cube] =
         (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Wall] =
@@ -221,12 +222,14 @@ static std::vector<ImportedInstance> loadRenderObjects(
     // These are instances that will be added to all the worlds.
     std::vector<ImportedInstance> imported_instances;
 
+    float height_offset = 20.f;
+
     // All the assets from the habitat JSON scene have object IDs which start at
     // SimObjectDefault::NumObjects
-    {
+    if (1) {
         imported_instances.push_back({
-            .position = { 0.f, 0.f, 0.f },
-            .rotation = { 0.0f, 0.0f, 0.0f, 1.0f },
+            .position = { 0.f, 0.f, 0.f + height_offset },
+            .rotation = Quat::angleAxis(0.f, math::up),
             .scale = { 1.f, 1.f, 1.f },
             .objectID = (int32_t)render_asset_paths.size(),
         });
@@ -236,14 +239,15 @@ static std::vector<ImportedInstance> loadRenderObjects(
         std::unordered_map<std::string, uint32_t> loaded_gltfs;
         for (const HabitatJSON::AdditionalInstance &inst :
                 loaded_scene.additionalInstances) {
-            auto [iter, insert_success] = loaded_gltfs.emplace(inst.gltfPath, 
+            printf("%s\n", inst.gltfPath.string().c_str());
+            auto [iter, insert_success] = loaded_gltfs.emplace(inst.gltfPath.string(), 
                     render_asset_paths.size());
             if (insert_success) {
                 // Push the instance to the instnaces array and load gltf
                 ImportedInstance new_inst = {
-                    .position = {inst.pos[0], inst.pos[1], inst.pos[2]},
-                    .rotation = {inst.rotation[0], inst.rotation[1], 
-                                 inst.rotation[2], inst.rotation[3]},
+                    .position = {inst.pos[0], inst.pos[1], inst.pos[2] + height_offset},
+                    .rotation = {inst.rotation[3], inst.rotation[0], 
+                                 inst.rotation[1], inst.rotation[2]},
                     .scale = {1.f, 1.f, 1.f},
                     .objectID = (int32_t)render_asset_paths.size(),
                 };
@@ -253,9 +257,9 @@ static std::vector<ImportedInstance> loadRenderObjects(
             } else {
                 // Push the instance to the instances array
                 ImportedInstance new_inst = {
-                    .position = {inst.pos[0], inst.pos[1], inst.pos[2]},
-                    .rotation = {inst.rotation[0], inst.rotation[1], 
-                                 inst.rotation[2], inst.rotation[3]},
+                    .position = {inst.pos[0], inst.pos[1], inst.pos[2] + height_offset},
+                    .rotation = {inst.rotation[3], inst.rotation[0], 
+                                 inst.rotation[1], inst.rotation[2]},
                     .scale = {1.f, 1.f, 1.f},
                     .objectID = (int32_t)iter->second,
                 };
@@ -263,6 +267,8 @@ static std::vector<ImportedInstance> loadRenderObjects(
                 imported_instances.push_back(new_inst);
             }
         }
+
+        printf("Loaded %d render objects\n", (int)loaded_gltfs.size());
     }
 
     // std::array<const char *, (size_t)SimObjectDefault::NumObjects> render_asset_cstrs;
@@ -287,7 +293,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
         { math::Vector4{0.5f, 0.3f, 0.3f, 0.0f},  0, 0.8f, 0.2f,},
         { render::rgb8ToFloat(230, 20, 20),   -1, 0.8f, 1.0f },
         { render::rgb8ToFloat(230, 230, 20),   -1, 0.8f, 1.0f },
-        { render::rgb8ToFloat(50, 50, 50),   -1, 0.8f, 1.0f },
+        { render::rgb8ToFloat(230, 230, 230),   -1, 0.8f, 1.0f },
     });
 
     habitat_material = 7;
@@ -324,7 +330,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
     });
 
     render_mgr.configureLighting({
-        { true, math::Vector3{1.0f, 1.0f, -2.0f}, math::Vector3{1.0f, 1.0f, 1.0f} }
+        { true, math::Vector3{1.0f, -1.0f, -0.05f}, math::Vector3{1.0f, 1.0f, 1.0f} }
     });
 
     return imported_instances;

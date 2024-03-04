@@ -89,7 +89,6 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
         simdjson::dom::parser nested_parser;
         auto insts = root["object_instances"];
 
-        uint32_t loaded_instances = 0;
         for (const auto &inst : insts) {
             AdditionalInstance additional_inst;
 
@@ -137,6 +136,10 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
                     object_config_path = object_config_path / string(1, template_name[0]);
                     object_config_path = object_config_path / template_name;
                     object_config_path.concat(".object_config.json");
+
+                    object_glb_path = object_glb_path / string(1, template_name[0]);
+                    object_glb_path = object_glb_path / template_name;
+                    object_glb_path.concat(".glb");
                 }
             } else {
                 object_config_path = object_config_path / "openings";
@@ -148,7 +151,6 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
                 object_glb_path.concat(".object_config.json");
             }
 
-
             auto inst_root = nested_parser.load(object_config_path);
             string_view inst_asset = inst_root["render_asset"];
 
@@ -158,9 +160,6 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
                 string_view(inst["motion_type"]) == "DYNAMIC";
 
             scene.additionalInstances.push_back(additional_inst);
-
-            loaded_instances++;
-            std::cout << "Loaded " << loaded_instances << " instances" << std::endl;
         }
 
         simdjson::dom::array objs;
