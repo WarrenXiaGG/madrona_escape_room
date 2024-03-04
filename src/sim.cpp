@@ -72,6 +72,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
     registry.registerArchetype<DoorEntity>();
     registry.registerArchetype<ButtonEntity>();
     registry.registerArchetype<DummyRenderable>();
+    registry.registerArchetype<ImportedEntity>();
 
 
     registry.exportSingleton<WorldReset>(
@@ -882,6 +883,9 @@ Sim::Sim(Engine &ctx,
     constexpr CountT max_total_entities = consts::numAgents +
         consts::numRooms * (consts::maxEntitiesPerRoom + 3) +
         4; // side walls + floor
+    
+    importedInstances = cfg.importedInstances;
+    numImportedInstances = cfg.numImportedInstances;
 
     /*phys::RigidBodyPhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
         consts::deltaT, consts::numPhysicsSubsteps, -9.8f * math::up,

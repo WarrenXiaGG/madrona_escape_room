@@ -1,4 +1,5 @@
 #include "level_gen.hpp"
+#include "madrona/render/ecs.hpp"
 
 namespace madEscape {
 
@@ -64,12 +65,26 @@ static void registerRigidBodyEntity(
 // All these entities persist across all episodes.
 void createPersistentEntities(Engine &ctx)
 {
+#if 0
     Entity e = ctx.makeEntity<DummyRenderable>();
     ctx.get<Position>(e) = Vector3{0,0,0};
     ctx.get<Rotation>(e) = Quat(1,0,0,0);//Rotation::fromAngularVec(Vector3{0,0,0});
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Dust2};
     render::RenderingSystem::makeEntityRenderable(ctx,e);
+#endif
+
+    for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
+        ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
+        Entity e_inst = ctx.makeEntity<DummyRenderable>();
+        ctx.get<Position>(e_inst) = imp_inst->position +
+            Vector3{0.f, 50.f, 0.f};
+        ctx.get<Rotation>(e_inst) = imp_inst->rotation;
+        ctx.get<Scale>(e_inst) = imp_inst->scale;
+        ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
+        render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+    }
+
     // Create the floor entity, just a simple static plane.
     /*ctx.data().floorPlane = ctx.makeRenderableEntity<PhysicsEntity>();
     setupRigidBodyEntity(

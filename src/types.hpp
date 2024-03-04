@@ -292,4 +292,13 @@ struct PhysicsEntity : public madrona::Archetype<
     madrona::render::Renderable
 > {};
 
+struct ImportedEntity : public madrona::Archetype<
+    Position,
+    Rotation,
+    Scale,
+    ObjectID,
+    EntityType,
+    madrona::render::Renderable
+> {};
+
 }

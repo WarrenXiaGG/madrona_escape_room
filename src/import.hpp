@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <string_view>
 #include <filesystem>
 
@@ -40,5 +41,3 @@ struct Scene {
 Scene habitatJSONLoad(std::string_view scene_path_name);
 
 }
-
-extern "C" void foo();

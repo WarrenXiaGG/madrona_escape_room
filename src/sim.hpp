@@ -43,6 +43,13 @@ enum class SimObjectDefault : uint32_t {
     NumObjects,
 };
 
+struct ImportedInstance {
+    madrona::math::Vector3 position;
+    madrona::math::Quat rotation;
+    madrona::math::Diag3x3 scale;
+    int32_t objectID;
+};
+
 // This is used for generic rendering objects
 using SimObject = uint32_t;
 
@@ -59,6 +66,9 @@ struct Sim : public madrona::WorldBase {
         RandKey initRandKey;
         const madrona::render::RenderECSBridge *renderBridge;
         const madrona::phys::MeshBVH* bvh;
+
+        uint32_t numImportedInstances;
+        ImportedInstance *importedInstances;
     };
 
     // This class would allow per-world custom data to be passed into
@@ -109,6 +119,9 @@ struct Sim : public madrona::WorldBase {
     // and are just reset to the start of the level on reset.
     Entity agents[consts::numAgents];
     const madrona::phys::MeshBVH* bvh;
+
+    ImportedInstance *importedInstances;
+    uint32_t numImportedInstances;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {

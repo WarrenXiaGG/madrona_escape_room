@@ -5,11 +5,6 @@
 
 #include "import.hpp"
 
-extern "C" void foo()
-{
-    
-}
-
 namespace HabitatJSON {
 
 using namespace std;
@@ -98,10 +93,6 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
         for (const auto &inst : insts) {
             AdditionalInstance additional_inst;
 
-            if (loaded_instances == 188) {
-                asm("int $3");
-            }
-
             uint32_t idx = 0;
             auto translation_obj = inst["translation"];
             for (auto c : translation_obj) {
@@ -134,6 +125,7 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
                     string core_name = string(template_name);
                     core_name.resize(part_start - 1);
                     object_glb_path = object_glb_path / "decomposed";
+                    object_glb_path = object_glb_path / core_name;
                     object_glb_path = object_glb_path / template_name;
                     object_glb_path.concat(".glb");
 

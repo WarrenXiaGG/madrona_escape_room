@@ -188,16 +188,18 @@ struct Manager::CUDAImpl final : Manager::Impl {
 };
 #endif
 
-static void loadRenderObjects(render::RenderManager &render_mgr, MeshBVH** bvh)
+static std::vector<ImportedInstance> loadRenderObjects(
+        render::RenderManager &render_mgr, MeshBVH** bvh)
 {
-    // Get the render objects needed from the habitat JSON
-    {
-        std::string scene_path = std::filesystem::path(DATA_DIR) /
-            "hssd-hab/scenes-uncluttered/108736884_177263634.scene_instance.json";
-        auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
-    }
+    (void)bvh;
 
-    std::array<std::string, (size_t)SimObjectDefault::NumObjects> render_asset_paths;
+    // Get the render objects needed from the habitat JSON
+    std::string scene_path = std::filesystem::path(DATA_DIR) /
+        "hssd-hab/scenes-uncluttered/108736884_177263634.scene_instance.json";
+    auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
+
+    std::vector<std::string> render_asset_paths;
+    render_asset_paths.resize((size_t)SimObjectDefault::NumObjects);
     render_asset_paths[(size_t)SimObjectDefault::Cube] =
         (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Wall] =
@@ -213,9 +215,60 @@ static void loadRenderObjects(render::RenderManager &render_mgr, MeshBVH** bvh)
     render_asset_paths[(size_t)SimObjectDefault::Dust2] =
         (std::filesystem::path(DATA_DIR) / "funky2.obj").string();
 
-    std::array<const char *, (size_t)SimObjectDefault::NumObjects> render_asset_cstrs;
+    // All models in the habitat thing use the same material for now
+    uint32_t habitat_material = 0;
+
+    // These are instances that will be added to all the worlds.
+    std::vector<ImportedInstance> imported_instances;
+
+    // All the assets from the habitat JSON scene have object IDs which start at
+    // SimObjectDefault::NumObjects
+    {
+        imported_instances.push_back({
+            .position = { 0.f, 0.f, 0.f },
+            .rotation = { 0.0f, 0.0f, 0.0f, 1.0f },
+            .scale = { 1.f, 1.f, 1.f },
+            .objectID = (int32_t)render_asset_paths.size(),
+        });
+
+        render_asset_paths.push_back(loaded_scene.stagePath.string());
+
+        std::unordered_map<std::string, uint32_t> loaded_gltfs;
+        for (const HabitatJSON::AdditionalInstance &inst :
+                loaded_scene.additionalInstances) {
+            auto [iter, insert_success] = loaded_gltfs.emplace(inst.gltfPath, 
+                    render_asset_paths.size());
+            if (insert_success) {
+                // Push the instance to the instnaces array and load gltf
+                ImportedInstance new_inst = {
+                    .position = {inst.pos[0], inst.pos[1], inst.pos[2]},
+                    .rotation = {inst.rotation[0], inst.rotation[1], 
+                                 inst.rotation[2], inst.rotation[3]},
+                    .scale = {1.f, 1.f, 1.f},
+                    .objectID = (int32_t)render_asset_paths.size(),
+                };
+
+                imported_instances.push_back(new_inst);
+                render_asset_paths.push_back(inst.gltfPath.string());
+            } else {
+                // Push the instance to the instances array
+                ImportedInstance new_inst = {
+                    .position = {inst.pos[0], inst.pos[1], inst.pos[2]},
+                    .rotation = {inst.rotation[0], inst.rotation[1], 
+                                 inst.rotation[2], inst.rotation[3]},
+                    .scale = {1.f, 1.f, 1.f},
+                    .objectID = (int32_t)iter->second,
+                };
+
+                imported_instances.push_back(new_inst);
+            }
+        }
+    }
+
+    // std::array<const char *, (size_t)SimObjectDefault::NumObjects> render_asset_cstrs;
+    std::vector<const char *> render_asset_cstrs;
     for (size_t i = 0; i < render_asset_paths.size(); i++) {
-        render_asset_cstrs[i] = render_asset_paths[i].c_str();
+        render_asset_cstrs.push_back(render_asset_paths[i].c_str());
     }
 
     std::array<char, 1024> import_err;
@@ -234,7 +287,10 @@ static void loadRenderObjects(render::RenderManager &render_mgr, MeshBVH** bvh)
         { math::Vector4{0.5f, 0.3f, 0.3f, 0.0f},  0, 0.8f, 0.2f,},
         { render::rgb8ToFloat(230, 20, 20),   -1, 0.8f, 1.0f },
         { render::rgb8ToFloat(230, 230, 20),   -1, 0.8f, 1.0f },
+        { render::rgb8ToFloat(50, 50, 50),   -1, 0.8f, 1.0f },
     });
+
+    habitat_material = 7;
 
     // Override materials
     render_assets->objects[(CountT)SimObjectDefault::Cube].meshes[0].materialIDX = 0;
@@ -245,8 +301,19 @@ static void loadRenderObjects(render::RenderManager &render_mgr, MeshBVH** bvh)
     render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[2].materialIDX = 3;
     render_assets->objects[(CountT)SimObjectDefault::Button].meshes[0].materialIDX = 6;
     render_assets->objects[(CountT)SimObjectDefault::Plane].meshes[0].materialIDX = 4;
-    for(int i =0;i<render_assets->objects[(CountT)SimObjectDefault::Dust2].meshes.size();i++) {
+    for(int i =0; 
+            i<render_assets->objects[(CountT)SimObjectDefault::Dust2].meshes.size();
+            i++) {
         render_assets->objects[(CountT) SimObjectDefault::Dust2].meshes[i].materialIDX = 0;
+    }
+
+    for (int obj_i = (int)SimObjectDefault::NumObjects;
+            obj_i < render_assets->objects.size(); ++obj_i) {
+        auto *obj_data = &render_assets->objects[obj_i];
+
+        for (int mesh_i = 0; mesh_i < obj_data->meshes.size(); ++mesh_i) {
+            obj_data->meshes[mesh_i].materialIDX = habitat_material;
+        }
     }
 
     render_mgr.loadObjects(render_assets->objects, materials, {
@@ -259,6 +326,8 @@ static void loadRenderObjects(render::RenderManager &render_mgr, MeshBVH** bvh)
     render_mgr.configureLighting({
         { true, math::Vector3{1.0f, 1.0f, -2.0f}, math::Vector3{1.0f, 1.0f, 1.0f} }
     });
+
+    return imported_instances;
 }
 
 static void loadPhysicsObjects(PhysicsLoader &loader)
@@ -441,8 +510,16 @@ Manager::Impl * Manager::Impl::init(
             initRenderManager(mgr_cfg, render_gpu_state);
 
         if (render_mgr.has_value()) {
-            loadRenderObjects(*render_mgr,&bvh);
+            auto imported_instances = loadRenderObjects(*render_mgr,&bvh);
+
             sim_cfg.renderBridge = render_mgr->bridge();
+            sim_cfg.importedInstances = (ImportedInstance *)cu::allocGPU(
+                    sizeof(ImportedInstance) * imported_instances.size());
+            sim_cfg.numImportedInstances = imported_instances.size();
+
+            REQ_CUDA(cudaMemcpy(sim_cfg.importedInstances, imported_instances.data(),
+                                sizeof(ImportedInstance) * imported_instances.size(),
+                                cudaMemcpyHostToDevice));
         } else {
             sim_cfg.renderBridge = nullptr;
         }
@@ -515,8 +592,14 @@ Manager::Impl * Manager::Impl::init(
             initRenderManager(mgr_cfg, render_gpu_state);
 
         if (render_mgr.has_value()) {
-            loadRenderObjects(*render_mgr,&bvh);
+            auto imported_instances = loadRenderObjects(*render_mgr,&bvh);
             sim_cfg.renderBridge = render_mgr->bridge();
+
+            sim_cfg.importedInstances = (ImportedInstance *)malloc(
+                    sizeof(ImportedInstance) * imported_instances.size());
+            sim_cfg.numImportedInstances = imported_instances.size();
+            memcpy(sim_cfg.importedInstances, imported_instances.data(),
+                   sizeof(ImportedInstance) * imported_instances.size());
         } else {
             sim_cfg.renderBridge = nullptr;
         }
