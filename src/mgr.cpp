@@ -237,9 +237,10 @@ static std::vector<ImportedInstance> loadRenderObjects(
         render_asset_paths.push_back(loaded_scene.stagePath.string());
 
         std::unordered_map<std::string, uint32_t> loaded_gltfs;
+        std::unordered_map<uint32_t, uint32_t> object_to_imported_instance;
+
         for (const HabitatJSON::AdditionalInstance &inst :
                 loaded_scene.additionalInstances) {
-            printf("%s\n", inst.gltfPath.string().c_str());
             auto [iter, insert_success] = loaded_gltfs.emplace(inst.gltfPath.string(), 
                     render_asset_paths.size());
             if (insert_success) {
@@ -280,6 +281,15 @@ static std::vector<ImportedInstance> loadRenderObjects(
     std::array<char, 1024> import_err;
     auto render_assets = imp::ImportedAssets::importFromDisk(
         render_asset_cstrs, Span<char>(import_err.data(), import_err.size()));
+
+    std::cout << "Post importFromDisk numObjects = " << render_assets->objects.size() << std::endl;
+    std::cout << "Post importFromDisk numInstances = " << render_assets->instances.size() << std::endl;
+    std::cout << "Pre importFromDisk numAssets = " << render_asset_cstrs.size() << std::endl;
+
+    for (int i = 0; i < render_assets->instances.size(); ++i) {
+        printf("Asset %d has base imported asset index %d\n", i,
+                (int)render_assets->instances[i].importedIndex);
+    }
 
     if (!render_assets.has_value()) {
         FATAL("Failed to load render assets: %s", import_err);

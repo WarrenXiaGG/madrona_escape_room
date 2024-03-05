@@ -165,6 +165,7 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
         simdjson::dom::array objs;
         auto obj_err = root["additional_objects"].get(objs);
         if (!obj_err) {
+            std::cout << "ADDITIONAL OBJECTS!" << std::endl;
             for (const auto &obj : objs) {
                 string_view template_name = obj["template_name"];
                 auto template_path = root_path / template_name;
