@@ -1,4 +1,5 @@
 #include "mgr.hpp"
+#include "types.hpp"
 
 #include <cstdio>
 #include <chrono>
@@ -6,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <random>
+#include <iostream>
 
 #include <madrona/heap_array.hpp>
 
@@ -56,6 +58,11 @@ int main(int argc, char *argv[])
         }
     }
 
+    int record = -1;
+    if (argc >= 6) {
+        record = atoi(argv[5]);
+    }
+
     Manager mgr({
         .execMode = exec_mode,
         .gpuID = 0,
@@ -69,6 +76,17 @@ int main(int argc, char *argv[])
     std::uniform_int_distribution<int32_t> act_rand(0, 2);
 
     auto start = std::chrono::system_clock::now();
+
+    unsigned char* print_ptr;
+    if(record != -1) {
+#ifdef MADRONA_CUDA_SUPPORT
+        int64_t num_bytes = sizeof(RaycastObservation);
+        print_ptr = (unsigned char*)cu::allocReadback(num_bytes);
+#else
+        print_ptr = nullptr;
+#endif
+    }
+
 
     for (CountT i = 0; i < (CountT)num_steps; i++) {
         if (rand_actions) {
@@ -87,6 +105,40 @@ int main(int argc, char *argv[])
                 }
             }
         }
+
+        if(record != -1) {
+            auto raycastTensor = (render::RenderOutput *) (mgr.raycastTensor().devicePtr());
+            raycastTensor = raycastTensor + (record * 2) + (std::max(1, 0));
+            if (exec_mode == ExecMode::CUDA) {
+#ifdef MADRONA_CUDA_SUPPORT
+                cudaMemcpy(print_ptr, raycastTensor,
+                   1 * sizeof(render::RenderOutput),
+                   cudaMemcpyDeviceToHost);
+                raycastTensor = (render::RenderOutput*)print_ptr;
+                printf("%d\n",raycastTensor->output[0][0][0]);
+#else
+
+#endif
+
+            }
+            std::ofstream out("out_" + std::to_string(i) + ".ppm", std::ios::out | std::ios::binary);
+            int width = 64;
+            int height = 64;
+            out.write("P3\n", 3);
+            out.write("64 64\n", 6);
+            out.write("255\n", 4);
+            for (int i = 0; i < height; i++) {
+                for (int j = 0; j < width; j++) {
+                    //std::cout << std::to_string(raycastTensor->output[i][j][0])  << std::endl;
+                    auto out2 = std::to_string(raycastTensor->output[i][j][0]) + " " +
+                                std::to_string(raycastTensor->output[i][j][1]) + " " +
+                                std::to_string(raycastTensor->output[i][j][2]) + "\n";
+                    out.write(out2.c_str(), out2.size());
+                }
+            }
+            out.close();
+        }
+
         mgr.step();
     }
 
