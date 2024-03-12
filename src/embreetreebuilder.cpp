@@ -374,6 +374,7 @@ namespace EmbreeTreeBuilder{
             }
         }
 
+
         /*for(int i=0;i<5;i++){
             std::cout<<childrenCounts[i]<<",";
         }
@@ -391,6 +392,29 @@ namespace EmbreeTreeBuilder{
             out->write((char *) &innerID, sizeof(int));
             out->write((char *) &leafID, sizeof(int));
             out->write((char *) &size, sizeof(size));
+        }
+
+        if(innerID == 0){
+            BVH_IMPLEMENTATION::Node node;
+            for(int j=0;j<nodeWidth;j++){
+                int32_t child;
+                if(j < leafNodes.size()) {
+                    LeafNode *iNode = (LeafNode *) leafNodes[j];
+                    child = 0x80000000 | iNode->lid;
+                    BoundingBox box = iNode->bounds;
+                    node.minX[j] = box.lower_x;
+                    node.minY[j] = box.lower_y;
+                    node.minZ[j] = box.lower_z;
+                    node.maxX[j] = box.upper_x;
+                    node.maxY[j] = box.upper_y;
+                    node.maxZ[j] = box.upper_z;
+                }else{
+                    child = sentinel;
+                }
+                node.children[j] = child;
+                //node.children[j] = 0xBBBBBBBB;
+            }
+            nodes.push_back(node);
         }
     //#define COMPRESSED
     #ifdef COMPRESSED
@@ -490,7 +514,7 @@ namespace EmbreeTreeBuilder{
             if(regenerate)
                 out->write((char*)&node, sizeof(Node2));
         }
-
+        //printf("Sizes:  %d,%d,%d,%d\n",nodes.size(),current_node_offset,innerID,leafNodes.size());
         auto *root_node = &nodes[current_node_offset];
 
         // Create root AABB
