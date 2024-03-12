@@ -78,6 +78,7 @@ void createPersistentEntities(Engine &ctx)
     printf("there are %d imported instances\n",
             (int)ctx.data().numImportedInstances);
 
+#if 0
     for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
         ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
         Entity e_inst = ctx.makeEntity<DummyRenderable>();
@@ -92,6 +93,7 @@ void createPersistentEntities(Engine &ctx)
             (void*)((madrona::phys::MeshBVH*)(ctx.data().bvhs)+ctx.get<ObjectID>(e_inst).idx);
         //printf("tester3 %x\n",ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr);
     }
+#endif
 #endif
 
     // Create the floor entity, just a simple static plane.
@@ -223,25 +225,15 @@ static void resetPersistentEntities(Engine &ctx)
 
          // Place the agents near the starting wall
          Vector3 pos {
-             randInRangeCentered(ctx, 
-                 consts::worldWidth / 2.f - 2.5f * consts::agentRadius),
-             randBetween(ctx, consts::agentRadius * 1.1f,  2.f),
-             0.f,
+             5.f * (float)i, 0.f, 2.f
          };
 
          auto camera = ctx.get<AgentCamera>(agent_entity).camera;
-            ctx.get<Position>(camera) = ctx.get<Position>(agent_entity);
-            ctx.get<Rotation>(camera) = ctx.get<Rotation>(agent_entity);
-            ctx.get<Scale>(camera) = Diag3x3{ 0.001,0.001,0.001 };
-
-         if (i % 2 == 0) {
-             pos.x += consts::worldWidth / 4.f;
-         } else {
-             pos.x -= consts::worldWidth / 4.f;
-         }
+         ctx.get<Position>(camera) = ctx.get<Position>(agent_entity);
+         ctx.get<Rotation>(camera) = ctx.get<Rotation>(agent_entity);
+         ctx.get<Scale>(camera) = Diag3x3{ 0.001,0.001,0.001 };
 
          ctx.get<Position>(agent_entity) = pos;
-         ctx.get<Position>(agent_entity) = i == 0 ? Vector3{57.828960f,214.227753f,51.0f} : Vector3{-48.940105f,123.385071f,33.0f};
          ctx.get<Rotation>(agent_entity) = Quat::angleAxis(
              randInRangeCentered(ctx, math::pi / 4.f),
              math::up);

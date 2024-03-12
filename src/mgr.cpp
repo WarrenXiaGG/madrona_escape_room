@@ -216,8 +216,10 @@ static std::vector<ImportedInstance> loadRenderObjects(
         (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Plane] =
         (std::filesystem::path(DATA_DIR) / "plane.obj").string();
+    // render_asset_paths[(size_t)SimObjectDefault::Dust2] =
+        // (std::filesystem::path(DATA_DIR) / "funky2.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Dust2] =
-        (std::filesystem::path(DATA_DIR) / "funky2.obj").string();
+        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
 
     // All models in the habitat thing use the same material for now
     uint32_t habitat_material = 0;
@@ -338,7 +340,8 @@ static std::vector<ImportedInstance> loadRenderObjects(
         }
     }
 
-    for(size_t i=preHabitatIndex;i< render_asset_paths.size(); i++){
+    //for(size_t i = 0; i < render_asset_paths.size(); i++){
+    for (size_t i = 0; i < (size_t)SimObjectDefault::NumObjects; ++i) {
         std::string path = render_asset_paths[i];
         std::cout << path << std::endl;
         size_t nodePosOffset = nodes.size();
@@ -355,7 +358,6 @@ static std::vector<ImportedInstance> loadRenderObjects(
         bvh.nodes = (BVH_IMPLEMENTATION::Node*)nodePosOffset;
         bvh.leafGeos = (BVH_IMPLEMENTATION::LeafGeometry*)leafsOffset;
         bvh.vertices = (Vector3*)vertsOffset;
-
         bvh.rootAABB = root_aabb;
 
         printf("%f %f %f -> %f %f %f \n",
@@ -599,6 +601,8 @@ Manager::Impl * Manager::Impl::init(
                 bvhs[i].leafGeos= geoPtr + numLeafs;
                 bvhs[i].leafMats = matPtr + numLeafs;
                 bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
+
+
             }
             REQ_CUDA(cudaMemcpy(bvhPtr,bvhs.data(),sizeof(BVH_IMPLEMENTATION)*bvhs.size(),cudaMemcpyHostToDevice));
             sim_cfg.bvhs = (void*)bvhPtr;
