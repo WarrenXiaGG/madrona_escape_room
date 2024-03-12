@@ -75,6 +75,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
     registry.registerArchetype<ImportedEntity>();
 
 
+
     registry.exportSingleton<WorldReset>(
         (uint32_t)ExportID::Reset);
     registry.exportColumn<Agent, Action>(
@@ -95,7 +96,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         (uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>(
         (uint32_t)ExportID::Done);
-    registry.exportColumn<Agent, RaycastObservation>(
+    registry.exportColumn<render::RenderCameraArchetype, render::RenderOutput>(
         (uint32_t)ExportID::Raycast);
 }
 
@@ -527,7 +528,7 @@ inline void raycastSystem(Engine &ctx,
                         AgentCamera& camera,
                         Position& position)
 {
-    //printf("%d\n",ctx.worldID().idx);
+    /*printf("%d\n",ctx.worldID().idx);
     Vector3 pos = ctx.get<Position>(e) + Vector3{0,0, 0};
     Quat rot = eulerToQuat(camera.yaw,camera.pitch);
 
@@ -561,7 +562,7 @@ inline void raycastSystem(Engine &ctx,
         float t;
         Vector3 normal = {0,0,0};
         //(madrona::phys2::MeshBVH*)(ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
-        bool hit = (ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
+        //bool hit = (ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
         Vector3 lightDir = Vector3{0.5,0.5,0.5};
         lightDir = lightDir.normalize();
         float lightness = normal.dot(lightDir);
@@ -608,7 +609,7 @@ inline void raycastSystem(Engine &ctx,
     for (CountT i = 0; i < consts::rayObservationWidth * consts::rayObservationHeight; i++) {
         traceRay(i,0);
     }
-#endif
+#endif*/
 }
 
 // Computes reward for each agent and keeps track of the max distance achieved
@@ -677,7 +678,8 @@ inline void stepTrackerSystem(Engine &,
 
 }
 
-inline void testerSystem(Engine& ctx, ObjectID& r){
+inline void testerSystem(Engine& ctx, render::BVHModel& r,render::InstanceData& id){
+    //printf("testerwhat %p, %p, %d,%d  %f,%f,%f\n",ctx.data().bvhs,r.ptr,id.objectID,id.worldIDX, id.position.x,id.position.y,id.position.z);
 }
 
 // Helper function for sorting nodes in the taskgraph.
@@ -713,7 +715,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
         >>({});
     auto test_sys = builder.addToGraph<ParallelForNode<Engine,
         testerSystem,
-            ObjectID
+            render::BVHModel,render::InstanceData
         >>({});
 /*
     // Scripted door behavior
@@ -902,7 +904,7 @@ Sim::Sim(Engine &ctx,
     }
 
     curWorldEpisode = 0;
-    bvh = cfg.bvh;
+    bvhs = cfg.bvhs;
 
     // Creates agents, walls, etc.
     createPersistentEntities(ctx);

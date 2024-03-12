@@ -85,6 +85,8 @@ void createPersistentEntities(Engine &ctx)
         ctx.get<Scale>(e_inst) = imp_inst->scale;
         ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
         render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr = (void*)ctx.data().bvhs;
+        //printf("tester3 %x\n",ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr);
     }
 #endif
 
@@ -95,6 +97,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Plane};
     render::RenderingSystem::makeEntityRenderable(ctx,e);
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = (void*)ctx.data().bvhs;
 
     /*
     // Create the outer wall entities
@@ -171,7 +174,7 @@ void createPersistentEntities(Engine &ctx)
                 camera,
                 90.f, 0.001f,
                 { 0,0,0 });
-        render::RenderingSystem::makeEntityRenderable(ctx,agent);
+        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(agent).renderEntity).ptr = (void*)ctx.data().bvhs;
 
         ctx.get<Scale>(agent) = Diag3x3 { 1, 1, 1 };
         ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObjectDefault::Agent };

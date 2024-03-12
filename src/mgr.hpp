@@ -4,6 +4,7 @@
 #include <madrona/exec_mode.hpp>
 
 #include <madrona/render/render_mgr.hpp>
+#include "embreetreebuilder.hpp"
 
 namespace madEscape {
 
