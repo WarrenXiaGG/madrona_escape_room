@@ -211,7 +211,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
     render_asset_paths[(size_t)SimObjectDefault::Door] =
         (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Agent] =
-        (std::filesystem::path(DATA_DIR) / "agent_render.obj").string();
+        (std::filesystem::path(DATA_DIR) / "cylinder_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Button] =
         (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Plane] =
@@ -593,6 +593,8 @@ Manager::Impl * Manager::Impl::init(
             auto vertexPtr = (Vector3*)cu::allocGPU(vertices.size()*sizeof(Vector3));
             REQ_CUDA(cudaMemcpy(vertexPtr,vertices.data(),vertices.size()*sizeof(Vector3),cudaMemcpyHostToDevice));
 
+            printf("vertex pointer: %p\n", vertexPtr);
+
             //Fix BVH Pointers
             printf("BVHSDSDS %d\n",bvhs.size());
             for(size_t i = 0;i<bvhs.size();i++){
@@ -601,6 +603,9 @@ Manager::Impl * Manager::Impl::init(
                 bvhs[i].leafGeos= geoPtr + numLeafs;
                 bvhs[i].leafMats = matPtr + numLeafs;
                 bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
+
+                printf("bvh vertex pointer now: %p\n",
+                        bvhs[i].vertices);
 
 
             }

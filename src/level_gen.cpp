@@ -103,7 +103,39 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Plane};
     //render::RenderingSystem::makeEntityRenderable(ctx,e);
-    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = (void*)ctx.data().bvhs;
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
+        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
+
+    for (int x = 0; x < 3; ++x) {
+        for (int y = 0; y < 3; ++y) {
+            e = ctx.makeRenderableEntity<DummyRenderable>();
+            ctx.get<Position>(e) = Vector3{(float)x * 5.f, (float)y * 5.f, 6.f};
+            ctx.get<Rotation>(e) = Quat(1,0,0,0);
+            ctx.get<Scale>(e) = Diag3x3{1,1,1};
+            ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
+            //render::RenderingSystem::makeEntityRenderable(ctx,e);
+            ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
+                (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
+        }
+    }
+
+    e = ctx.data().floorPlane = ctx.makeRenderableEntity<DummyRenderable>();
+    ctx.get<Position>(e) = Vector3{0,0,0};
+    ctx.get<Rotation>(e) = Quat(1,0,0,0);
+    ctx.get<Scale>(e) = Diag3x3{1,1,1};
+    ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
+    //render::RenderingSystem::makeEntityRenderable(ctx,e);
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
+        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
+
+    e = ctx.data().floorPlane = ctx.makeRenderableEntity<DummyRenderable>();
+    ctx.get<Position>(e) = Vector3{0,0,50.f};
+    ctx.get<Rotation>(e) = Quat(1,0,0,0);
+    ctx.get<Scale>(e) = Diag3x3{30, 30, 30};
+    ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
+    //render::RenderingSystem::makeEntityRenderable(ctx,e);
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
+        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 
     /*
     // Create the outer wall entities
@@ -180,10 +212,13 @@ void createPersistentEntities(Engine &ctx)
                 camera,
                 90.f, 0.001f,
                 { 0,0,0 });
-        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(agent).renderEntity).ptr = (void*)ctx.data().bvhs;
+
+        ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObjectDefault::Agent };
+
+        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(agent).renderEntity).ptr = 
+            (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(agent).idx;
 
         ctx.get<Scale>(agent) = Diag3x3 { 1, 1, 1 };
-        ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObjectDefault::Agent };
         ctx.get<GrabState>(agent).constraintEntity = Entity::none();
         ctx.get<EntityType>(agent) = EntityType::Agent;
 
