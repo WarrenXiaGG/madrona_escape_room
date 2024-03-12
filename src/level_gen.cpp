@@ -85,7 +85,7 @@ void createPersistentEntities(Engine &ctx)
         ctx.get<Scale>(e_inst) = imp_inst->scale;
         ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
         render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
-        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr = (void*)ctx.data().bvhs;
+        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr = (void*)((madrona::phys::MeshBVH*)(ctx.data().bvhs)+ctx.get<ObjectID>(e_inst).idx);
         //printf("tester3 %x\n",ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr);
     }
 #endif
@@ -96,7 +96,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Rotation>(e) = Quat(1,0,0,0);
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Plane};
-    render::RenderingSystem::makeEntityRenderable(ctx,e);
+    //render::RenderingSystem::makeEntityRenderable(ctx,e);
     ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = (void*)ctx.data().bvhs;
 
     /*
