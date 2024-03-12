@@ -236,6 +236,10 @@ namespace EmbreeTreeBuilder{
         int index = 0;
         for(int i=0;i<object.meshes.size();i++){
             auto mesh = object.meshes[i];
+            for(int i2=0;i2<mesh.numVertices;i2++){
+                madrona::math::Vector3 v1 = mesh.positions[i2];
+                vertices[i2+offsets[i]] = {v1.x,v1.y,v1.z};
+            }
             for(int i2=0;i2<mesh.numFaces;i2++){
                 if (mesh.faceCounts != nullptr) {
                     FATAL("MeshBVH only supports triangular meshes");
