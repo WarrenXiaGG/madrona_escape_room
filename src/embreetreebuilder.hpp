@@ -17,10 +17,12 @@
 
 namespace EmbreeTreeBuilder {
     bool loadAndConvert(std::string path, madrona::imp::SourceObject& object,
-                               std::vector<BVH_IMPLEMENTATION>& bvhs,
-                               std::vector<BVH_IMPLEMENTATION::Node>& nodes,
-                               std::vector<BVH_IMPLEMENTATION::LeafGeometry>& leafGeos,
-                               std::vector<BVH_IMPLEMENTATION::LeafMaterial>& leafMaterials,
-                               std::vector<madrona::math::Vector3>& verticesOut, bool regenerate, bool cache);
+                        std::vector<BVH_IMPLEMENTATION>& bvhs,
+                        std::vector<BVH_IMPLEMENTATION::Node>& nodes,
+                        std::vector<BVH_IMPLEMENTATION::LeafGeometry>& leafGeos,
+                        std::vector<BVH_IMPLEMENTATION::LeafMaterial>& leafMaterials,
+                        std::vector<madrona::math::Vector3>& verticesOut, 
+                        madrona::math::AABB &aabbOut,
+                        bool regenerate, bool cache);
 };
 

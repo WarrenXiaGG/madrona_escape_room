@@ -190,11 +190,13 @@ namespace EmbreeTreeBuilder{
       };
 
     bool loadAndConvert(std::string path, madrona::imp::SourceObject& object,
-                               std::vector<BVH_IMPLEMENTATION>& bvhs,
-                               std::vector<BVH_IMPLEMENTATION::Node>& nodes,
-                               std::vector<BVH_IMPLEMENTATION::LeafGeometry>& leafGeos,
-                               std::vector<BVH_IMPLEMENTATION::LeafMaterial>& leafMaterials,
-                               std::vector<madrona::math::Vector3>& verticesOut, bool regenerate, bool cache) {
+                        std::vector<BVH_IMPLEMENTATION>& bvhs,
+                        std::vector<BVH_IMPLEMENTATION::Node>& nodes,
+                        std::vector<BVH_IMPLEMENTATION::LeafGeometry>& leafGeos,
+                        std::vector<BVH_IMPLEMENTATION::LeafMaterial>& leafMaterials,
+                        std::vector<madrona::math::Vector3>& verticesOut,
+                        madrona::math::AABB &aabbOut,
+                        bool regenerate, bool cache) {
         //Assimp::Importer importer;
         //importer.SetPropertyFloat("AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY",100);
         //const aiScene* scene = importer.ReadFile("/home/warrenxia/Desktop/MadronaBVH/madrona_escape_room/data/glbtestobject.glb",
@@ -482,6 +484,26 @@ namespace EmbreeTreeBuilder{
             if(regenerate)
                 out->write((char*)&node, sizeof(Node2));
         }
+
+        // Create root AABB
+        madrona::math::AABB merged = {
+            .pMin = { nodes[0].minX[0], nodes[0].minY[0], nodes[0].minZ[0] },
+            .pMax = { nodes[0].maxX[0], nodes[0].maxY[0], nodes[0].maxZ[0] },
+        };
+
+        for (int aabb_idx = 1; aabb_idx < nodeWidth; ++aabb_idx) {
+            if (nodes[0].hasChild(aabb_idx)) {
+                madrona::math::AABB child_aabb = {
+                    .pMin = { nodes[0].minX[aabb_idx], nodes[0].minY[aabb_idx], nodes[0].minZ[aabb_idx] },
+                    .pMax = { nodes[0].maxX[aabb_idx], nodes[0].maxY[aabb_idx], nodes[0].maxZ[aabb_idx] },
+                };
+
+                merged = madrona::math::AABB::merge(merged, child_aabb);
+            }
+        }
+
+        aabbOut = merged;
+
     #endif
         for(int i=0;i<leafID;i++){
             LeafNode* node = leafNodes[i];

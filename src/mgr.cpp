@@ -198,7 +198,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
 
     // Get the render objects needed from the habitat JSON
     std::string scene_path = std::filesystem::path(DATA_DIR) /
-        "scene_datasets/hssd-hab/scenes-uncluttered/108736884_177263634.scene_instance.json";
+        "hssd-hab/scenes-uncluttered/108736884_177263634.scene_instance.json";
     auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
 
     std::vector<std::string> render_asset_paths;
@@ -285,7 +285,8 @@ static std::vector<ImportedInstance> loadRenderObjects(
 
     std::array<char, 1024> import_err;
     auto render_assets = imp::ImportedAssets::importFromDisk(
-        render_asset_cstrs, Span<char>(import_err.data(), import_err.size()));
+        render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
+        false);
 
     std::cout << "Post importFromDisk numObjects = " << render_assets->objects.size() << std::endl;
     std::cout << "Post importFromDisk numInstances = " << render_assets->instances.size() << std::endl;
@@ -343,7 +344,10 @@ static std::vector<ImportedInstance> loadRenderObjects(
         size_t nodePosOffset = nodes.size();
         size_t leafsOffset = leafGeos.size();
         size_t vertsOffset = vertices.size();
-        EmbreeTreeBuilder::loadAndConvert(path,render_assets->objects[i],bvhs, nodes,leafGeos,leafMats,vertices,false,true);
+        madrona::math::AABB root_aabb;
+        EmbreeTreeBuilder::loadAndConvert(path, render_assets->objects[i],
+                                          bvhs, nodes, leafGeos,
+                                          leafMats, vertices, root_aabb, false, true);
         BVH_IMPLEMENTATION bvh;
         bvh.numLeaves = leafGeos.size() - leafsOffset;
         bvh.numNodes = nodes.size() - nodePosOffset;
@@ -351,6 +355,13 @@ static std::vector<ImportedInstance> loadRenderObjects(
         bvh.nodes = (BVH_IMPLEMENTATION::Node*)nodePosOffset;
         bvh.leafGeos = (BVH_IMPLEMENTATION::LeafGeometry*)leafsOffset;
         bvh.vertices = (Vector3*)vertsOffset;
+
+        bvh.rootAABB = root_aabb;
+
+        printf("%f %f %f -> %f %f %f \n",
+                bvh.rootAABB.pMin.x, bvh.rootAABB.pMin.y, bvh.rootAABB.pMin.z,
+                bvh.rootAABB.pMax.x, bvh.rootAABB.pMax.y, bvh.rootAABB.pMax.z);
+
         bvhs.push_back(bvh);
     }
 

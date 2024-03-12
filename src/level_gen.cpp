@@ -77,6 +77,7 @@ void createPersistentEntities(Engine &ctx)
 #if 1
     printf("there are %d imported instances\n",
             (int)ctx.data().numImportedInstances);
+
     for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
         ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
         Entity e_inst = ctx.makeEntity<DummyRenderable>();
@@ -84,8 +85,11 @@ void createPersistentEntities(Engine &ctx)
         ctx.get<Rotation>(e_inst) = imp_inst->rotation;
         ctx.get<Scale>(e_inst) = imp_inst->scale;
         ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
+
         render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
-        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr = (void*)((madrona::phys::MeshBVH*)(ctx.data().bvhs)+ctx.get<ObjectID>(e_inst).idx);
+
+        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr = 
+            (void*)((madrona::phys::MeshBVH*)(ctx.data().bvhs)+ctx.get<ObjectID>(e_inst).idx);
         //printf("tester3 %x\n",ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr);
     }
 #endif

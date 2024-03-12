@@ -176,6 +176,8 @@ int main(int argc, char *argv[])
     viewer.loop(
     [&mgr](CountT world_idx, const Viewer::UserInput &input)
     {
+        printf("new frame\n");
+
         using Key = Viewer::KeyboardKey;
         if (input.keyHit(Key::R)) {
             mgr.triggerReset(world_idx);
