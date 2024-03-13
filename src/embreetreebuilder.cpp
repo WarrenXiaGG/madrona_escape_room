@@ -206,15 +206,15 @@ namespace EmbreeTreeBuilder{
 
         int numTriangles = 0;
         int numVertices = 0;
-        long offsets[object.meshes.size()+1];
-        long triOffsets[object.meshes.size()+1];
+        std::vector<long> offsets(object.meshes.size()+1);
+        std::vector<long>  triOffsets(object.meshes.size()+1);
         offsets[0] = 0;
         triOffsets[0] = 0;
         for(int i=0;i<object.meshes.size();i++){
             numTriangles += object.meshes[i].numFaces;
             numVertices += object.meshes[i].numVertices;
-            offsets[i+1] = object.meshes[i].numVertices;
-            triOffsets[i+1] = object.meshes[i].numFaces;
+            offsets[i+1] = object.meshes[i].numVertices+offsets[i];
+            triOffsets[i+1] = object.meshes[i].numFaces+triOffsets[i];
         }
 
         //std::cout << "Num tris: " << numTriangles;
@@ -234,14 +234,16 @@ namespace EmbreeTreeBuilder{
         prims_compressed.resize(numTriangles);
 
         int index = 0;
+        int counter = 0;
         for(int i=0;i<object.meshes.size();i++){
-            auto mesh = object.meshes[i];
-            for(int i2=0;i2<mesh.numVertices;i2++){
+            auto& mesh = object.meshes[i];
+            for(uint32_t i2=0;i2<mesh.numVertices;i2++){
                 madrona::math::Vector3 v1 = mesh.positions[i2];
-                
+                printf("%d,%d,%d %f,%f,%f\n",i,i2,counter,v1.x,v1.y,v1.z);
                 assert(i2 + offsets[i] < vertices.size());
-
+                assert(counter < vertices.size());
                 vertices[i2+offsets[i]] = {v1.x,v1.y,v1.z};
+                counter++;
             }
             for(int i2=0;i2<mesh.numFaces;i2++){
                 if (mesh.faceCounts != nullptr) {
@@ -336,6 +338,8 @@ namespace EmbreeTreeBuilder{
           const float sah = root ? root->sah() : 0.0f;
           //std::cout << 1000.0f*(t1-t0) << "ms, " << 1E-6*double(prims.size())/(t1-t0) << " Mprims/s, sah = " << sah << " [DONE]" << std::endl;
         }
+
+        printf("Counter %d,%d,%d\n",counter,vertices.size(),numVertices);
 
         std::vector<Node*> stack;
         stack.push_back(root);
@@ -572,6 +576,7 @@ namespace EmbreeTreeBuilder{
         }
 
         for(int i=0;i<vertices.size();i++) {
+            printf("%f,%f,%f\n",vertices[i].x,vertices[i].y,vertices[i].z);
             verticesOut.push_back({vertices[i].x,vertices[i].y,vertices[i].z});
         }
         if(regenerate) {
