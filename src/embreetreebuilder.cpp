@@ -239,7 +239,7 @@ namespace EmbreeTreeBuilder{
             auto& mesh = object.meshes[i];
             for(uint32_t i2=0;i2<mesh.numVertices;i2++){
                 madrona::math::Vector3 v1 = mesh.positions[i2];
-                printf("%d,%d,%d %f,%f,%f\n",i,i2,counter,v1.x,v1.y,v1.z);
+                //printf("%d,%d,%d %f,%f,%f\n",i,i2,counter,v1.x,v1.y,v1.z);
                 assert(i2 + offsets[i] < vertices.size());
                 assert(counter < vertices.size());
                 vertices[i2+offsets[i]] = {v1.x,v1.y,v1.z};
@@ -279,9 +279,9 @@ namespace EmbreeTreeBuilder{
                 float maxY = std::max(std::max(v1.y,v2.y),v3.y);
                 float maxZ = std::max(std::max(v1.z,v2.z),v3.z);
 
-                printf("(second check) %f %f %f -> %f %f %f\n",
+                /*printf("(second check) %f %f %f -> %f %f %f\n",
                         minX, minY, minZ,
-                        maxX, maxY, maxZ);
+                        maxX, maxY, maxZ);*/
 
                 RTCBuildPrimitive prim;
                 prim.lower_x = minX;
@@ -576,7 +576,7 @@ namespace EmbreeTreeBuilder{
         }
 
         for(int i=0;i<vertices.size();i++) {
-            printf("%f,%f,%f\n",vertices[i].x,vertices[i].y,vertices[i].z);
+            //printf("%f,%f,%f\n",vertices[i].x,vertices[i].y,vertices[i].z);
             verticesOut.push_back({vertices[i].x,vertices[i].y,vertices[i].z});
         }
         if(regenerate) {
