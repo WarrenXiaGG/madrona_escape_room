@@ -36,7 +36,7 @@ SET(embree_DIR ~/Development/embree/lib/cmake/embree-4.3.1)
 FIND_PACKAGE(embree 4 REQUIRED)
 
 add_library(mad_escape_importertree STATIC
-    embreetreebuilder.hpp embreetreebuilder.cpp
+    tree_builder.hpp tree_builder.cpp
 )
 
 target_link_libraries(mad_escape_importertree

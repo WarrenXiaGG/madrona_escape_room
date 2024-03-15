@@ -103,7 +103,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Plane};
     //render::RenderingSystem::makeEntityRenderable(ctx,e);
-    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).bvh = 
         (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 
     for (int x = 0; x < 3; ++x) {
@@ -114,7 +114,7 @@ void createPersistentEntities(Engine &ctx)
             ctx.get<Scale>(e) = Diag3x3{1,1,1};
             ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
             //render::RenderingSystem::makeEntityRenderable(ctx,e);
-            ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
+            ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).bvh = 
                 (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
         }
     }
@@ -125,7 +125,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
     //render::RenderingSystem::makeEntityRenderable(ctx,e);
-    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).bvh = 
         (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 
     e = ctx.data().floorPlane = ctx.makeRenderableEntity<DummyRenderable>();
@@ -134,7 +134,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Scale>(e) = Diag3x3{30, 30, 30};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
     //render::RenderingSystem::makeEntityRenderable(ctx,e);
-    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).bvh = 
         (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 
     /*
@@ -215,7 +215,7 @@ void createPersistentEntities(Engine &ctx)
 
         ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObjectDefault::Agent };
 
-        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(agent).renderEntity).ptr = 
+        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(agent).renderEntity).bvh = 
             (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(agent).idx;
 
         ctx.get<Scale>(agent) = Diag3x3 { 1, 1, 1 };

@@ -22,6 +22,8 @@
 #include <madrona/cuda_utils.hpp>
 #endif
 
+#include "tree_builder.hpp"
+
 using namespace madrona;
 using namespace madrona::math;
 using namespace madrona::phys;
@@ -188,14 +190,14 @@ struct Manager::CUDAImpl final : Manager::Impl {
 #endif
 
 static std::vector<ImportedInstance> loadRenderObjects(
-        render::RenderManager &render_mgr, std::vector<BVH_IMPLEMENTATION>& bvhs,
-        std::vector<BVH_IMPLEMENTATION::Node>& nodes,
-        std::vector<BVH_IMPLEMENTATION::LeafGeometry>& leafGeos,
-        std::vector<BVH_IMPLEMENTATION::LeafMaterial>& leafMats,
+        render::RenderManager &render_mgr, 
+        std::vector<EmbreeTreeBuilder::MeshBVHOffsets> &bvh_offsets,
+        std::vector<MeshBVH>& bvhs,
+        std::vector<MeshBVH::Node>& nodes,
+        std::vector<MeshBVH::LeafGeometry>& leafGeos,
+        std::vector<MeshBVH::LeafMaterial>& leafMats,
         std::vector<Vector3>& vertices)
 {
-    //(void)bvh;
-
     // Get the render objects needed from the habitat JSON
     std::string scene_path = std::filesystem::path(DATA_DIR) /
         "hssd-hab/scenes-uncluttered/108736884_177263634.scene_instance.json";
@@ -211,7 +213,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
     render_asset_paths[(size_t)SimObjectDefault::Door] =
         (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Agent] =
-        (std::filesystem::path(DATA_DIR) / "cylinder_render.obj").string();
+        (std::filesystem::path(DATA_DIR) / "agent_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Button] =
         (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Plane] =
@@ -344,27 +346,43 @@ static std::vector<ImportedInstance> loadRenderObjects(
     for (size_t i = 0; i < (size_t)SimObjectDefault::NumObjects; ++i) {
         std::string path = render_asset_paths[i];
         std::cout << path << std::endl;
+
         size_t nodePosOffset = nodes.size();
         size_t leafsOffset = leafGeos.size();
         size_t vertsOffset = vertices.size();
+
         madrona::math::AABB root_aabb;
+
         EmbreeTreeBuilder::loadAndConvert(path, render_assets->objects[i],
                                           bvhs, nodes, leafGeos,
                                           leafMats, vertices, root_aabb, false, true);
-        BVH_IMPLEMENTATION bvh;
+
+        MeshBVH bvh;
         bvh.numLeaves = leafGeos.size() - leafsOffset;
         bvh.numNodes = nodes.size() - nodePosOffset;
         bvh.numVerts = vertices.size() - vertsOffset;
-        bvh.nodes = (BVH_IMPLEMENTATION::Node*)nodePosOffset;
-        bvh.leafGeos = (BVH_IMPLEMENTATION::LeafGeometry*)leafsOffset;
-        bvh.vertices = (Vector3*)vertsOffset;
         bvh.rootAABB = root_aabb;
+
+#if 0
+        bvh.nodes = nodePosOffset;
+        bvh.leafGeos = leafsOffset;
+        bvh.vertices = vertsOffset;
+#endif
 
         printf("%f %f %f -> %f %f %f \n",
                 bvh.rootAABB.pMin.x, bvh.rootAABB.pMin.y, bvh.rootAABB.pMin.z,
                 bvh.rootAABB.pMax.x, bvh.rootAABB.pMax.y, bvh.rootAABB.pMax.z);
 
         bvhs.push_back(bvh);
+
+        EmbreeTreeBuilder::MeshBVHOffsets offsets = {
+            .nodesOffset = (uint32_t)nodePosOffset,
+            .leafGeosOffset = (uint32_t)leafsOffset,
+            .leafMatsOffset = 0,
+            .verticesOffset = (uint32_t)vertsOffset
+        };
+
+        bvh_offsets.push_back(offsets);
     }
 
     //render_assets->objects[7].meshes[9].
@@ -563,12 +581,16 @@ Manager::Impl * Manager::Impl::init(
             initRenderManager(mgr_cfg, render_gpu_state);
 
         if (render_mgr.has_value()) {
-            std::vector<BVH_IMPLEMENTATION::Node> nodes;
-            std::vector<BVH_IMPLEMENTATION::LeafGeometry> leafGeos;
-            std::vector<BVH_IMPLEMENTATION::LeafMaterial> leafMats;
-            std::vector<BVH_IMPLEMENTATION> bvhs;
+            std::vector<MeshBVH::Node> nodes;
+            std::vector<MeshBVH::LeafGeometry> leaf_geos;
+            std::vector<MeshBVH::LeafMaterial> leaf_mats;
+            std::vector<MeshBVH> bvhs;
+            std::vector<EmbreeTreeBuilder::MeshBVHOffsets> bvh_offsets;
             std::vector<Vector3> vertices;
-            auto imported_instances = loadRenderObjects(*render_mgr,bvhs,nodes,leafGeos,leafMats,vertices);
+
+            auto imported_instances = loadRenderObjects(
+                    *render_mgr, bvh_offsets, bvhs, nodes,
+                    leaf_geos, leaf_mats, vertices);
 
             sim_cfg.renderBridge = render_mgr->bridge();
             sim_cfg.importedInstances = (ImportedInstance *)cu::allocGPU(
@@ -579,38 +601,47 @@ Manager::Impl * Manager::Impl::init(
                                 sizeof(ImportedInstance) * imported_instances.size(),
                                 cudaMemcpyHostToDevice));
 
-            auto bvhPtr = (BVH_IMPLEMENTATION*)cu::allocGPU(bvhs.size()*sizeof(BVH_IMPLEMENTATION));
+            // Allocate the BVHs
+            auto bvh_ptr = (MeshBVH *)cu::allocGPU(
+                    bvhs.size() * sizeof(MeshBVH));
 
-            auto nodePtr = (BVH_IMPLEMENTATION::Node*)cu::allocGPU(nodes.size()*sizeof(BVH_IMPLEMENTATION::Node));
-            REQ_CUDA(cudaMemcpy(nodePtr,nodes.data(),nodes.size()*sizeof(BVH_IMPLEMENTATION::Node),cudaMemcpyHostToDevice));
+            auto node_ptr = (MeshBVH::Node *)cu::allocGPU(
+                    nodes.size() * sizeof(MeshBVH::Node));
+            REQ_CUDA(cudaMemcpy(node_ptr, nodes.data(), 
+                                nodes.size() * sizeof(MeshBVH::Node),
+                                cudaMemcpyHostToDevice));
 
-            auto geoPtr = (BVH_IMPLEMENTATION::LeafGeometry*)cu::allocGPU(leafGeos.size()*sizeof(BVH_IMPLEMENTATION::LeafGeometry));
-            REQ_CUDA(cudaMemcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(BVH_IMPLEMENTATION::LeafGeometry),cudaMemcpyHostToDevice));
+            auto geo_ptr = (MeshBVH::LeafGeometry *)cu::allocGPU(
+                    leaf_geos.size() * sizeof(MeshBVH::LeafGeometry));
+            REQ_CUDA(cudaMemcpy(geo_ptr, leaf_geos.data(), 
+                                leaf_geos.size() * sizeof(MeshBVH::LeafGeometry),
+                                cudaMemcpyHostToDevice));
+            auto mat_ptr = (MeshBVH::LeafMaterial *)cu::allocGPU(
+                    leaf_mats.size() * sizeof(MeshBVH::LeafMaterial));
 
-            auto matPtr = (BVH_IMPLEMENTATION::LeafMaterial*)cu::allocGPU(leafMats.size()*sizeof(BVH_IMPLEMENTATION::LeafMaterial));
-            REQ_CUDA(cudaMemcpy(matPtr,leafMats.data(),sizeof(BVH_IMPLEMENTATION::LeafMaterial)*leafMats.size(),cudaMemcpyHostToDevice));
+            REQ_CUDA(cudaMemcpy(mat_ptr, leaf_mats.data(), 
+                                sizeof(MeshBVH::LeafMaterial) * leaf_mats.size(),
+                                cudaMemcpyHostToDevice));
 
-            auto vertexPtr = (Vector3*)cu::allocGPU(vertices.size()*sizeof(Vector3));
-            REQ_CUDA(cudaMemcpy(vertexPtr,vertices.data(),vertices.size()*sizeof(Vector3),cudaMemcpyHostToDevice));
+            auto vertex_ptr = (Vector3 *)cu::allocGPU(
+                     vertices.size() * sizeof(Vector3));
+            REQ_CUDA(cudaMemcpy(vertex_ptr, vertices.data(), 
+                        vertices.size() * sizeof(Vector3),
+                        cudaMemcpyHostToDevice));
 
-            printf("vertex pointer: %p\n", vertexPtr);
+            printf("vertex pointer: %p\n", vertex_ptr);
 
-            //Fix BVH Pointers
-            printf("BVHSDSDS %d\n",bvhs.size());
-            for(size_t i = 0;i<bvhs.size();i++){
-                size_t numLeafs = (size_t)(bvhs[i].leafGeos);
-                bvhs[i].nodes = nodePtr + (size_t)(bvhs[i].nodes);
-                bvhs[i].leafGeos= geoPtr + numLeafs;
-                bvhs[i].leafMats = matPtr + numLeafs;
-                bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
-
-                printf("bvh vertex pointer now: %p\n",
-                        bvhs[i].vertices);
-
-
+            for (int i = 0; i < bvhs.size(); ++i) {
+                bvhs[i].nodes = node_ptr + bvh_offsets[i].nodesOffset;
+                bvhs[i].leafGeos = geo_ptr + bvh_offsets[i].leafGeosOffset;
+                bvhs[i].vertices = vertex_ptr + bvh_offsets[i].verticesOffset;
             }
-            REQ_CUDA(cudaMemcpy(bvhPtr,bvhs.data(),sizeof(BVH_IMPLEMENTATION)*bvhs.size(),cudaMemcpyHostToDevice));
-            sim_cfg.bvhs = (void*)bvhPtr;
+
+            REQ_CUDA(cudaMemcpy(bvh_ptr, bvhs.data(), 
+                                sizeof(MeshBVH) * bvhs.size(),
+                                cudaMemcpyHostToDevice));
+
+            sim_cfg.bvhs = bvh_ptr;
         } else {
             sim_cfg.renderBridge = nullptr;
         }
@@ -666,13 +697,17 @@ Manager::Impl * Manager::Impl::init(
             initRenderManager(mgr_cfg, render_gpu_state);
 
         if (render_mgr.has_value()) {
-            std::vector<BVH_IMPLEMENTATION::Node> nodes;
-            std::vector<BVH_IMPLEMENTATION::LeafGeometry> leafGeos;
-            std::vector<BVH_IMPLEMENTATION::LeafMaterial> leafMats;
+            std::vector<MeshBVH::Node> nodes;
+            std::vector<MeshBVH::LeafGeometry> leafGeos;
+            std::vector<MeshBVH::LeafMaterial> leafMats;
             std::vector<Vector3> vertices;
-            std::vector<BVH_IMPLEMENTATION> bvhs;
+            std::vector<EmbreeTreeBuilder::MeshBVHOffsets> bvh_offsets;
+            std::vector<MeshBVH> bvhs;
 
-            auto imported_instances = loadRenderObjects(*render_mgr,bvhs,nodes,leafGeos,leafMats,vertices);
+            auto imported_instances = loadRenderObjects(
+                    *render_mgr, bvh_offsets, bvhs,nodes,
+                    leafGeos, leafMats, vertices);
+
             sim_cfg.renderBridge = render_mgr->bridge();
 
             sim_cfg.importedInstances = (ImportedInstance *)malloc(
@@ -681,16 +716,16 @@ Manager::Impl * Manager::Impl::init(
             memcpy(sim_cfg.importedInstances, imported_instances.data(),
                    sizeof(ImportedInstance) * imported_instances.size());
 
-            auto bvhPtr = (BVH_IMPLEMENTATION*)malloc(bvhs.size()*sizeof(BVH_IMPLEMENTATION));
+            auto bvhPtr = (MeshBVH*)malloc(bvhs.size()*sizeof(MeshBVH));
 
-            auto nodePtr = (BVH_IMPLEMENTATION::Node*)malloc(nodes.size()*sizeof(BVH_IMPLEMENTATION::Node));
-            memcpy(nodePtr,nodes.data(),nodes.size()*sizeof(BVH_IMPLEMENTATION::Node));
+            auto nodePtr = (MeshBVH::Node*)malloc(nodes.size()*sizeof(MeshBVH::Node));
+            memcpy(nodePtr,nodes.data(),nodes.size()*sizeof(MeshBVH::Node));
 
-            auto geoPtr = (BVH_IMPLEMENTATION::LeafGeometry*)malloc(leafGeos.size()*sizeof(BVH_IMPLEMENTATION::LeafGeometry));
-            memcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(BVH_IMPLEMENTATION::LeafGeometry));
+            auto geoPtr = (MeshBVH::LeafGeometry*)malloc(leafGeos.size()*sizeof(MeshBVH::LeafGeometry));
+            memcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(MeshBVH::LeafGeometry));
 
-            auto matPtr = (BVH_IMPLEMENTATION::LeafMaterial*)malloc(leafMats.size()*sizeof(BVH_IMPLEMENTATION::LeafMaterial));
-            memcpy(matPtr,leafMats.data(),sizeof(BVH_IMPLEMENTATION::LeafMaterial)*leafMats.size());
+            auto matPtr = (MeshBVH::LeafMaterial*)malloc(leafMats.size()*sizeof(MeshBVH::LeafMaterial));
+            memcpy(matPtr,leafMats.data(),sizeof(MeshBVH::LeafMaterial)*leafMats.size());
 
             auto vertexPtr = (Vector3*)malloc(vertices.size()*sizeof(Vector3));
             memcpy(vertexPtr,vertices.data(),vertices.size()*sizeof(Vector3));
@@ -704,16 +739,16 @@ Manager::Impl * Manager::Impl::init(
                 bvhs[i].leafMats = matPtr + numLeafs;
                 bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
             }
-            memcpy(bvhPtr,bvhs.data(),sizeof(BVH_IMPLEMENTATION)*bvhs.size());
+            memcpy(bvhPtr,bvhs.data(),sizeof(MeshBVH)*bvhs.size());
 
             for(int i=0;i<bvhs.size();i++){
                 float t;
                 Vector3 s;
-                bvhPtr[i].traceRay({0,0,0},{0,1,0},&t,&s);
+                // bvhPtr[i].traceRay({0,0,0},{0,1,0},&t,&s);
                 //printf("%x,%x,%x,%x,%x\n",&bvhPtr[4].nodes[i],bvhPtr[4].nodes[i].children[0],bvhPtr[4].nodes[i].children[1],bvhPtr[4].nodes[i].children[2],bvhPtr[4].nodes[i].children[3]);
             }
 
-            sim_cfg.bvhs = (void*)bvhPtr;
+            // sim_cfg.bvhs = (void*)bvhPtr;
         } else {
             sim_cfg.renderBridge = nullptr;
         }

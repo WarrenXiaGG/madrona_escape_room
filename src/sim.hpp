@@ -2,11 +2,11 @@
 
 #include <madrona/taskgraph_builder.hpp>
 #include <madrona/custom_context.hpp>
+#include <madrona/mesh_bvh.hpp>
 #include <madrona/rand.hpp>
 
 #include "consts.hpp"
 #include "types.hpp"
-#include "madrona/mesh_bvh.hpp"
 
 
 namespace madEscape {
@@ -65,7 +65,9 @@ struct Sim : public madrona::WorldBase {
         bool autoReset;
         RandKey initRandKey;
         const madrona::render::RenderECSBridge *renderBridge;
-        void* bvhs;
+
+        // Contains all the BVH data.
+        madrona::phys::MeshBVH *bvhs;
 
         uint32_t numImportedInstances;
         ImportedInstance *importedInstances;
@@ -118,7 +120,7 @@ struct Sim : public madrona::WorldBase {
     // Agent entity references. This entities live across all episodes
     // and are just reset to the start of the level on reset.
     Entity agents[consts::numAgents];
-    const void* bvhs;
+    const madrona::phys::MeshBVH *bvhs;
 
     ImportedInstance *importedInstances;
     uint32_t numImportedInstances;

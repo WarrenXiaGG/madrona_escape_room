@@ -679,7 +679,7 @@ inline void stepTrackerSystem(Engine &,
 }
 
 inline void testerSystem(Engine& ctx, render::BVHModel& r,render::InstanceData& id){
-    //printf("testerwhat %p, %p, %d,%d  %f,%f,%f\n",ctx.data().bvhs,r.ptr,id.objectID,id.worldIDX, id.position.x,id.position.y,id.position.z);
+
 }
 
 // Helper function for sorting nodes in the taskgraph.
