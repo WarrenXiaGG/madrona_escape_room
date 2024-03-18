@@ -63,11 +63,16 @@ int main(int argc, char *argv[])
         num_replay_steps = replay_log->size() / (num_worlds * num_views * 4);
     }
 
+    // Render mode 0 is no rendering
+    // Render mode 1 is rasterization.
+    // Render mode 2 is raycasting.
+    auto *render_mode = getenv("MADRONA_RENDER_MODE");
+
     bool enable_batch_renderer =
 #ifdef MADRONA_MACOS
         false;
 #else
-        true;
+        render_mode[0] == '1';
 #endif
 
     WindowManager wm {};
@@ -75,6 +80,7 @@ int main(int argc, char *argv[])
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
     printf("premanage: \n");
+
     // Create the simulation manager
     Manager mgr({
         .execMode = exec_mode,
@@ -176,7 +182,7 @@ int main(int argc, char *argv[])
     viewer.loop(
     [&mgr](CountT world_idx, const Viewer::UserInput &input)
     {
-        printf("new frame\n");
+        // printf("new frame\n");
 
         using Key = Viewer::KeyboardKey;
         if (input.keyHit(Key::R)) {

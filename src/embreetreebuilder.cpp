@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <fstream>
 #include <cfloat>
+#include <madrona/mesh_bvh.hpp>
 
 
 
@@ -199,15 +200,13 @@ namespace EmbreeTreeBuilder{
                         bool regenerate, bool cache) {
         uint32_t current_node_offset = nodes.size();
 
-        //Assimp::Importer importer;
-        //importer.SetPropertyFloat("AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY",100);
-        //const aiScene* scene = importer.ReadFile("/home/warrenxia/Desktop/MadronaBVH/madrona_escape_room/data/glbtestobject.glb",
-        //                                         aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_GlobalScale);
-
         int numTriangles = 0;
         int numVertices = 0;
-        std::vector<long> offsets(object.meshes.size()+1);
-        std::vector<long>  triOffsets(object.meshes.size()+1);
+        std::vector<long> offsets;
+        offsets.resize(object.meshes.size()+1);
+        std::vector<long>  triOffsets;
+        triOffsets.resize(object.meshes.size()+1);
+
         offsets[0] = 0;
         triOffsets[0] = 0;
         for(int i=0;i<object.meshes.size();i++){
@@ -217,20 +216,15 @@ namespace EmbreeTreeBuilder{
             triOffsets[i+1] = object.meshes[i].numFaces+triOffsets[i];
         }
 
-        //std::cout << "Num tris: " << numTriangles;
-
         RTCDevice device = rtcNewDevice(NULL);
         RTCBVH bvh = rtcNewBVH(device);
         std::vector<RTCBuildPrimitive> prims_i;
-        prims_i.reserve(numTriangles);
         prims_i.resize(numTriangles);
 
         std::vector<Vector3> vertices;
-        vertices.reserve(numVertices);
         vertices.resize(numVertices);
 
-        std::vector<uint64_t> prims_compressed;
-        prims_compressed.reserve(numTriangles);
+        std::vector<madrona::phys::TriangleIndices> prims_compressed;
         prims_compressed.resize(numTriangles);
 
         int index = 0;
@@ -264,12 +258,18 @@ namespace EmbreeTreeBuilder{
 
                 int32_t b_diff = (int32_t)global_b_idx - (int32_t)global_a_idx;
                 int32_t c_diff = (int32_t)global_c_idx - (int32_t)global_a_idx;
-                assert(abs(b_diff) < 32767 && abs(c_diff) < 32767);
+                // assert(abs(b_diff) < 32767 && abs(c_diff) < 32767);
 
+                prims_compressed[triOffsets[i] + i2] = {
+                    { global_a_idx, global_b_idx, global_c_idx }
+                };
+
+#if 0
                 prims_compressed[triOffsets[i] + i2] =
                         (uint64_t(global_a_idx) << 32) |
                         (uint64_t((uint16_t)b_diff) << 16) |
                         uint64_t((uint16_t)c_diff);
+#endif
 
                 float minX = std::min(std::min(v1.x,v2.x),v3.x);
                 float minY = std::min(std::min(v1.y,v2.y),v3.y);
@@ -555,7 +555,10 @@ namespace EmbreeTreeBuilder{
                 if(i2<node->numPrims){
                     geos.packedIndices[i2] = prims_compressed[node->id[i2]];
                 }else{
-                    geos.packedIndices[i2] =0xFFFF'FFFF'FFFF'FFFF;
+                    // geos.packedIndices[i2] = 0xFFFF'FFFF'FFFF'FFFF;
+                    geos.packedIndices[i2] = {
+                        { 0xFFFF'FFFF, 0xFFFF'FFFF, 0xFFFF'FFFF }
+                    };
                 }
             }
             leafGeos.push_back(geos);

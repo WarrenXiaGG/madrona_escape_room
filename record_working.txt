@@ -1,0 +1,439 @@
+luc@atlas:~/Development/madrona_raycast/madrona_escape_room/build$ MADRONA_MWGPU_KERNEL_CACHE=/tmp/luc_cache ./viewer 1 --cuda
+Started in:
+premanage:
+Cuda init:
+post Cuda init:
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/stages/108736656_177263304.stage_config.json
+Loaded 140 render objects
+Post importFromDisk numObjects = 142
+Post importFromDisk numInstances = 135
+Pre importFromDisk numAssets = 148
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/cube_render.obj
+Counter 24,24,24
+-1.000000 -1.000000 -1.000000 -> 1.000000 1.000000 1.000000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/wall_render.obj
+Counter 24,24,24
+-0.500000 -0.500000 0.000000 -> 0.500000 0.500000 2.500000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/wall_render.obj
+Counter 24,24,24
+-0.500000 -0.500000 0.000000 -> 0.500000 0.500000 2.500000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/agent_render.obj
+Counter 1000,1000,1000
+-1.123827 -0.924864 -0.011517 -> 1.123831 0.924864 1.849093
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/cube_render.obj
+Counter 24,24,24
+-1.000000 -1.000000 -1.000000 -> 1.000000 1.000000 1.000000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/cube_render.obj
+Counter 24,24,24
+-1.000000 -1.000000 -1.000000 -> 1.000000 1.000000 1.000000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/plane.obj
+Counter 4,4,4
+-10000.000000 -10000.000000 0.000000 -> 10000.000000 10000.000000 0.000000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/stages/108736656_177263304.glb
+Counter 8790,8790,8790
+-20.023985 0.000000 -12.655579 -> 4.731789 2.800000 5.496238
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/9/97084f49c2d3c95c2beae295e3cfeb6913512d3d.glb
+Counter 592,592,592
+-0.675000 0.000000 -0.350000 -> 0.675000 0.400000 0.350000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/8/8c297387b65b2ab225740383572f1dba79859791.glb
+Counter 11566,11566,11566
+-0.337931 0.002142 -0.438106 -> 0.336265 0.944256 0.440232
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/a/a12c38ab09b33b900974763ce25f5d49208e646b.glb
+Counter 232,232,232
+-1.015000 -0.000000 -0.453694 -> 1.015000 0.753837 0.453694
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/c/c385e8d08fcf94d22e0aeff7423ec306ec740302.glb
+Counter 17202,17202,17202
+-0.438308 -0.000000 -0.979902 -> 0.438309 0.748775 0.979902
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/c/c426ef21a586b2ebcb15e351fc976c6d6dc941c8.glb
+Counter 5016,5016,5016
+-0.538614 -0.000000 -0.700002 -> 0.538613 0.010000 0.700002
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/8/8c6c2542f3fc80d98cd324c58496eafd3ecdd5c5.glb
+Counter 6175,6175,6175
+-0.316880 0.000000 -0.166138 -> 0.316880 0.090820 0.166138
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/1/1c094fa03158472435f319ff499aef6f7b9ff883.glb
+Counter 7091,7091,7091
+-0.333422 0.000000 -0.323121 -> 0.333977 0.719992 0.339392
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/6/632f2039f29e055236433f96d866523bf457d3c1.glb
+Counter 528,528,528
+-0.609600 -0.001405 -0.304789 -> 0.609600 0.005678 0.304800
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/5/53d50e5f18116ba67d1cf7fe3a34ddc5a0023c36.glb
+Counter 662,662,662
+-0.232155 -0.000000 -0.231815 -> 0.232155 1.469266 0.231815
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/5/58dd8c5c93f6e68f86f5102937b87a042ea525cb.glb
+Counter 7883,7883,7883
+-0.065000 -0.000007 -0.073768 -> 0.065000 0.002000 0.054432
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/7/70c4e28c73b61b7e5258120b790c4a76a9767f08.glb
+Counter 5365,5365,5365
+-0.169336 -0.002129 -0.308528 -> 0.169482 0.371658 0.198782
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/0/0f99cf2a7e57657dfbf68a22dbcc36b3bda23ab8.glb
+Counter 7946,7946,7946
+-0.624980 0.046663 -0.429772 -> 0.626903 0.101418 0.429612
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/a/a6cc1a28962e4e21a94f8238bb816cf14c0c5e12.glb
+Counter 1404,1404,1404
+-0.222678 -0.000898 -0.175888 -> 0.222678 0.274101 0.175888
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/8/8ff1977bc0c68f2b436c7938494e65f8b427b5ed.glb
+Counter 1406,1406,1406
+-0.185076 0.001194 -0.146187 -> 0.185076 0.229756 0.146187
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/f/fcbec27e89a114dc373e08baa90f20bb503ecf3e.glb
+Counter 5769,5769,5769
+-0.199669 -0.003209 -0.274018 -> 0.199669 0.289560 0.273776
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/4/41b19efe13404b6c1c3035603cebb0bb7fe17139.glb
+Counter 65,65,65
+-1.143000 -0.000000 -1.600200 -> 1.143000 0.010000 1.600200
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/5/51b161fc703d3a8b8b71fbfe85d5acc238231b41.glb
+Counter 80,80,80
+-1.000000 -0.000000 -1.500000 -> 1.000000 0.010000 1.500000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/1/1d438cf2a0be5706ffdbd1489fbfb27f712589a0.glb
+Counter 2109,2109,2109
+-0.629143 0.001051 -0.401484 -> 0.629143 0.077238 0.401484
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d_part_10.glb
+Counter 24,24,24
+-0.450000 0.000000 -0.153132 -> 0.450000 0.050000 0.153132
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d_part_12.glb
+Counter 1884,1884,1884
+-0.023371 0.000001 -0.023371 -> 0.023371 0.156494 0.023371
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d_part_13.glb
+Counter 2292,2292,2292
+-0.123589 0.057556 -0.110034 -> 0.116940 0.303463 0.098029
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d_part_17.glb
+Counter 28105,28105,28105
+-0.059215 0.070588 -0.076050 -> 0.062986 0.256602 0.077001
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d_part_14.glb
+Counter 96,96,96
+-0.061795 0.000000 -0.045759 -> 0.061795 0.074777 0.045759
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d/ff0d0a7fe6e2a685cf03bf6ef2e32ae44d79372d_part_16.glb
+Counter 96,96,96
+-0.065669 0.000000 -0.044924 -> 0.065669 0.074190 0.044924
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/c/c7cbe030340ce3c254503bf5317f26090c223dc4.glb
+Counter 24321,24321,24321
+-0.303810 0.000017 -0.326048 -> 0.303810 0.914851 0.324028
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/b/b8fbc479fa7f044b67ebbe29bc7ab12e6745c910.glb
+Counter 30054,30054,30054
+-0.939800 -0.000000 -0.355600 -> 0.939800 0.965200 0.355600
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/f/f359e92c249c96d0121f40252c856f99008f9c2e.glb
+Counter 4279,4279,4279
+-0.661253 0.010329 -0.353845 -> 0.661253 0.073470 0.353845
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/a/a21f673cca3cf12131c1553986f30132cd97e259.glb
+Counter 174937,174937,174937
+-1.024831 -0.000000 -0.403902 -> 1.024831 0.775065 0.403901
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/x/xxxxfada0856x5a66x449fxad12x9db03aed918c.glb
+Counter 7813,7813,7813
+-0.709958 0.000038 -0.230233 -> 0.710000 0.791880 0.230274
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/3/3316b7cd2a7056735b8c473249e2940de9361603.glb
+Counter 27914,27914,27914
+-0.089999 0.000000 -1.399999 -> 0.090000 0.160000 1.399999
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/4/4e8ab06e4f325efc525ba7c28229f17d1d4439ff.glb
+Counter 48,48,48
+-0.530000 -0.000000 -0.430000 -> 0.530000 0.029153 0.430000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/4/40667dfcf9d1c152d8bf09f7b7e045b85dd67240.glb
+Counter 13921,13921,13921
+-0.211029 -0.002024 -0.318760 -> 0.257170 0.851192 0.191542
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/0/0c4ab4d4ccdc801b4093f10a9aa9c0bfd08ab584.glb
+Counter 9069,9069,9069
+-0.194416 -0.000092 -0.340252 -> 0.194416 0.806128 0.340267
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/6/62e7362d8dca5108b4f3c1f83f48837135ab35d1.glb
+Counter 2340,2340,2340
+-1.000995 -0.000000 -0.226183 -> 1.000995 0.005864 0.219590
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/8/8c0e89ec91e59437d0c42db62cff511ad1bf45db.glb
+Counter 1447,1447,1447
+-0.626185 -0.005938 -0.414777 -> 0.626185 0.526916 0.471122
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/c/c94a0e798aa88b0a8669da5ee3304e23705fb8dd.glb
+Counter 1693,1693,1693
+-0.131948 -0.751765 -0.130961 -> 0.129974 -0.000640 0.130961
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/e/e93aa2953374cf58f67e8b8ac1e7f60ee722848e.glb
+Counter 4757,4757,4757
+-0.400000 -0.000000 -0.334815 -> 0.400000 0.145000 0.334815
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/f/f0027755bd94035989d29a683874df8755979ee7.glb
+Counter 3010,3010,3010
+-0.200065 0.000000 -0.200065 -> 0.200065 1.801812 0.200065
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/d/ddd7c5ecd2bfa8e6a2df8bdac20dd01a27b25028.glb
+Counter 2608,2608,2608
+-0.187129 -0.000037 -0.176592 -> 0.185061 0.239611 0.174849
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/b/bbf950688bbeefa6b4515267f3faa6d05cbcf3c5.glb
+Counter 1406,1406,1406
+-0.185076 0.001194 -0.146187 -> 0.185076 0.229756 0.146187
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/f/fa992e8a80eb119d468fc7e67b73cdfb559c4613.glb
+Counter 169032,169032,169032
+-0.155483 0.000136 -0.153186 -> 0.150494 0.301262 0.152790
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/4/4751f7e429927a87273e8ef447afef2e13176802.glb
+Counter 15819,15819,15819
+-0.982301 -0.000000 -0.572728 -> 0.982301 1.561860 0.572727
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/3a08b42318c54a51a0ea28547a12d919ea4f46ca/3a08b42318c54a51a0ea28547a12d919ea4f46ca_part_2.glb
+Counter 24,24,24
+-1.000000 0.000000 -0.009979 -> 1.000000 0.300000 0.009979
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/3a08b42318c54a51a0ea28547a12d919ea4f46ca/3a08b42318c54a51a0ea28547a12d919ea4f46ca_part_3.glb
+Counter 1265,1265,1265
+-0.050440 -0.083732 -0.085084 -> 0.083732 0.050440 0.083809
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ea122f67ee70695ce0780d45e7e208853c65228d/ea122f67ee70695ce0780d45e7e208853c65228d_part_2.glb
+Counter 128,128,128
+-0.350399 1.202703 -0.104735 -> 0.372070 1.664044 0.191857
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/1/168286ceb4f9758dc69789c4d41b5238e0c2c817.glb
+Counter 29547,29547,29547
+-2.237865 -0.000000 -0.330176 -> 2.237868 2.927756 0.330177
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/b/b26510bada2b60b037ab8f78f6f8442df8f98a3c.glb
+Counter 11692,11692,11692
+-0.609600 -0.000426 -0.609600 -> 0.609599 0.762000 0.609600
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/e/ebe666c00f31e06e0c8cd52744a47ed226021aa0.glb
+Counter 9267,9267,9267
+-0.660400 -0.000549 -0.317500 -> 0.660400 0.457200 0.317500
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/2/2849f0b8bd471cc65d1fe828c837af717d56a4ba.glb
+Counter 7991,7991,7991
+-0.247377 -1.105146 -0.214572 -> 0.247377 0.000000 0.214572
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/0/088894c7fc28ed0e91a9c8eb44ca8df68cc217e6.glb
+Counter 24170,24170,24170
+-0.232356 -0.722745 -0.202889 -> 0.232356 -0.000000 0.202889
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/c/c3e45e226f51e328829dcf0afc2b3baf5de0ac0c.glb
+Counter 60747,60747,60747
+-0.261140 -0.016539 -0.370147 -> 0.261139 0.175816 0.369204
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/869a49f22f68a2d39f548138aa5165743aaf790a/869a49f22f68a2d39f548138aa5165743aaf790a_part_1.glb
+Counter 8775,8775,8775
+-0.152578 -0.028189 -0.004394 -> 0.126383 0.060320 0.153443
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/869a49f22f68a2d39f548138aa5165743aaf790a/869a49f22f68a2d39f548138aa5165743aaf790a_part_3.glb
+Counter 32781,32781,32781
+-0.065794 0.037868 -0.132372 -> 0.118618 0.184455 -0.006772
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/869a49f22f68a2d39f548138aa5165743aaf790a/869a49f22f68a2d39f548138aa5165743aaf790a_part_4.glb
+Counter 24,24,24
+-0.483299 0.000000 -0.018581 -> 0.483299 0.210589 0.018581
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/869a49f22f68a2d39f548138aa5165743aaf790a/869a49f22f68a2d39f548138aa5165743aaf790a_part_6.glb
+Counter 6915,6915,6915
+-0.167366 0.000000 -0.145909 -> 0.167366 0.128795 0.145494
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/7/7b4c611e578247d01c1c8b7c61bfe17dbc381960.glb
+Counter 3076,3076,3076
+-0.625274 -0.000981 -0.133388 -> 0.625274 0.882164 0.133388
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/8/819d680058215e4a35dfc4abe61b91ec5901d4ad.glb
+Counter 14637,14637,14637
+-0.705461 0.001393 -0.476544 -> 0.703017 0.787162 0.476700
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ded915cd6ff75d772c84abbc4ca2bf141d0caa90/ded915cd6ff75d772c84abbc4ca2bf141d0caa90_part_1.glb
+Counter 3991,3991,3991
+-0.056063 0.010178 -0.060334 -> 0.056680 0.067208 0.052401
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ded915cd6ff75d772c84abbc4ca2bf141d0caa90/ded915cd6ff75d772c84abbc4ca2bf141d0caa90_part_2.glb
+Counter 2090,2090,2090
+-0.044465 0.004101 0.030283 -> 0.106790 0.150659 0.157221
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ded915cd6ff75d772c84abbc4ca2bf141d0caa90/ded915cd6ff75d772c84abbc4ca2bf141d0caa90_part_3.glb
+Counter 2292,2292,2292
+-0.121540 0.037242 0.027574 -> 0.078006 0.230591 0.195040
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ded915cd6ff75d772c84abbc4ca2bf141d0caa90/ded915cd6ff75d772c84abbc4ca2bf141d0caa90_part_4.glb
+Counter 295,295,295
+-0.221357 0.000000 -0.046161 -> 0.221357 0.214007 0.046161
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ded915cd6ff75d772c84abbc4ca2bf141d0caa90/ded915cd6ff75d772c84abbc4ca2bf141d0caa90_part_5.glb
+Counter 293,293,293
+-0.174160 0.000000 -0.046161 -> 0.174160 0.148159 0.046161
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ded915cd6ff75d772c84abbc4ca2bf141d0caa90/ded915cd6ff75d772c84abbc4ca2bf141d0caa90_part_6.glb
+Counter 306,306,306
+-0.112812 0.000000 -0.046161 -> 0.112812 0.133918 0.046161
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ded915cd6ff75d772c84abbc4ca2bf141d0caa90/ded915cd6ff75d772c84abbc4ca2bf141d0caa90_part_7.glb
+Counter 291,291,291
+-0.221357 0.000000 -0.046161 -> 0.221357 0.214007 0.046161
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/8/8e0ed91a99dfa774e8e3b49d699bbc8135575dd3.glb
+Counter 17835,17835,17835
+-0.419100 -0.000000 -0.235625 -> 0.419100 0.863661 0.235625
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/e/e26b670c0a6d0f15d0df22cc522a6706e00f8ab3.glb
+Counter 133,133,133
+-1.500000 -0.000000 -1.000000 -> 1.500000 0.020000 1.000000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/e/e39c1afc2c76d2653c2c6eff7b4f4b21e525bda1.glb
+Counter 8864,8864,8864
+-0.550000 0.000000 -0.334999 -> 0.550000 0.885002 0.334959
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/5/5ca55136a02d65316485a0faf571a7956b6b9d88.glb
+Counter 4058,4058,4058
+-0.222063 0.000110 -0.398664 -> 0.222063 0.522454 0.352729
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/b/b77f5895a941e7f07cf6c8bcd01b742038b93742.glb
+Counter 95106,95106,95106
+-0.200000 -0.000000 -0.090000 -> 0.200000 0.270000 0.090000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/6/69fef89f82dd0ae0588ae718ef23abbbd06135d8.glb
+Counter 52,52,52
+-0.336460 0.000000 -0.336557 -> 0.336402 0.068721 0.335769
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/0/0b4104839ae511cb6e4beca6603566331847b6a4.glb
+Counter 19593,19593,19593
+-0.131109 -1.090081 -0.132249 -> 0.131800 -0.000053 0.130661
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/0/0cc7e57f842e239ba5529ce5a19d72144098c76a.glb
+Counter 8036,8036,8036
+-0.180001 -0.000000 -0.179999 -> 0.180000 0.600000 0.180000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/2/217a4cc8c41ce47c5a3af1c87b665aed5ad5ef84.glb
+Counter 3039,3039,3039
+-0.055400 0.000000 -0.054437 -> 0.055400 0.167495 0.125591
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/5/55e1de5b5ab8291c9c29ecac4395e64dca748f30.glb
+Counter 4095,4095,4095
+-0.649810 -0.392694 -0.649810 -> 0.649810 -0.000092 0.649810
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/c/cf12af67b32e99b6409cb812b29375631ba7d7cf.glb
+Counter 10259,10259,10259
+-0.300001 0.000001 -0.249999 -> 0.300002 1.190002 0.249999
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/8/829bf87b541238bb7579a05d18d4f7f1d1f98af1.glb
+Counter 4542,4542,4542
+-0.749786 -0.000000 -0.237021 -> 0.749786 1.039970 0.237021
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/7/7a6480db1902731ce7081dabeb179caec9cc0400.glb
+Counter 3229,3229,3229
+-0.217137 -0.000000 -0.266866 -> 0.217137 0.316574 0.266889
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/a/a8d5c2a789290c41ec2d7f939d616ecdd685c367.glb
+Counter 5254,5254,5254
+-0.300440 -1.099521 -0.061919 -> 0.300440 0.000000 0.061919
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/69d7057448064caa17bc872873aa3221d2c3532b/69d7057448064caa17bc872873aa3221d2c3532b_part_5.glb
+Counter 738,738,738
+-0.370780 0.000000 -0.052585 -> 0.370780 0.210716 0.052585
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/9a615bc008007903d799fe0555fea43dc450d537/9a615bc008007903d799fe0555fea43dc450d537_part_5.glb
+Counter 605,605,605
+-0.370780 0.000000 -0.052585 -> 0.370780 0.210717 0.052585
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/0/09b1df19e95ab47e50c8aac06137ef2f51144d34.glb
+Counter 29272,29272,29272
+-0.124583 -0.052738 -0.592289 -> 0.124741 0.186593 0.591485
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/6496186e992992acb4e59596f857d4358db8d641/6496186e992992acb4e59596f857d4358db8d641_part_1.glb
+Counter 3164,3164,3164
+-0.092435 0.000000 -0.092435 -> 0.120617 0.425756 0.120616
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/6496186e992992acb4e59596f857d4358db8d641/6496186e992992acb4e59596f857d4358db8d641_part_2.glb
+Counter 564,564,564
+-0.141459 -0.105163 -0.120871 -> 0.020441 0.174860 0.102983
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/6496186e992992acb4e59596f857d4358db8d641/6496186e992992acb4e59596f857d4358db8d641_part_49.glb
+Counter 1252,1252,1252
+-1.625000 -0.000000 -0.200000 -> 1.625000 3.000000 0.200000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/2dc78f6467719dc4ae5392ede5f7e3635a2924f0/2dc78f6467719dc4ae5392ede5f7e3635a2924f0_part_1.glb
+Counter 291,291,291
+-0.221357 0.000000 -0.046161 -> 0.221357 0.214007 0.046161
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/2dc78f6467719dc4ae5392ede5f7e3635a2924f0/2dc78f6467719dc4ae5392ede5f7e3635a2924f0_part_2.glb
+Counter 306,306,306
+-0.112812 0.000000 -0.046161 -> 0.112812 0.133918 0.046161
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/2dc78f6467719dc4ae5392ede5f7e3635a2924f0/2dc78f6467719dc4ae5392ede5f7e3635a2924f0_part_3.glb
+Counter 293,293,293
+-0.174160 0.000000 -0.046161 -> 0.174160 0.148159 0.046161
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/2dc78f6467719dc4ae5392ede5f7e3635a2924f0/2dc78f6467719dc4ae5392ede5f7e3635a2924f0_part_4.glb
+Counter 295,295,295
+-0.221357 0.000000 -0.046161 -> 0.221357 0.214007 0.046161
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/2dc78f6467719dc4ae5392ede5f7e3635a2924f0/2dc78f6467719dc4ae5392ede5f7e3635a2924f0_part_5.glb
+Counter 2090,2090,2090
+-0.044465 0.004101 0.030283 -> 0.106790 0.150659 0.157221
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/2dc78f6467719dc4ae5392ede5f7e3635a2924f0/2dc78f6467719dc4ae5392ede5f7e3635a2924f0_part_6.glb
+Counter 2292,2292,2292
+-0.121540 0.037242 0.027574 -> 0.078006 0.230591 0.195040
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/2dc78f6467719dc4ae5392ede5f7e3635a2924f0/2dc78f6467719dc4ae5392ede5f7e3635a2924f0_part_7.glb
+Counter 3991,3991,3991
+-0.056063 0.010178 -0.060334 -> 0.056680 0.067208 0.052401
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/f/fe67bb9b9c8420dbab7f77a391a06fa70eecc13d.glb
+Counter 6034,6034,6034
+-1.001433 0.001527 -0.317018 -> 1.001433 0.102677 0.315180
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/f/f719e6f9cc9fa51fdcf651e9e1664b45b33e61f5.glb
+Counter 7777,7777,7777
+-0.299087 -0.000000 -0.280707 -> 0.299087 1.618722 0.288049
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/2/2cb375dc30e908a6e4b6545976ad71d2586d6807.glb
+Counter 13192,13192,13192
+-0.528989 0.002218 -0.407478 -> 0.528989 0.156840 0.364461
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/d/de3067a831219cc8fbeacaaf1fb263d9ae27ed05.glb
+Counter 17319,17319,17319
+-0.431800 -0.000109 -0.431800 -> 0.431800 0.711372 0.431800
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/d/d8c33846cd05fc87c20b3d76cd0012566591b10f.glb
+Counter 48,48,48
+-0.527000 -0.000000 -0.654000 -> 0.527000 0.030000 0.654000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/f/f0ccef0db54849d5d6f5ef2eca07de07830d0c3d.glb
+Counter 9145,9145,9145
+-0.100000 -0.000000 -0.160000 -> 0.100000 0.200000 0.160000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/d/df0f8fa79af6c3d51f4d717f40f4565334de0ea2.glb
+Counter 8576,8576,8576
+-0.522563 -0.000000 -1.031389 -> 0.527755 0.960000 1.031389
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/7/7e775c69ac2117af01e9a0ab9743af15966d064b.glb
+Counter 18094,18094,18094
+-0.102913 0.000034 -0.050770 -> 0.102913 0.225426 0.050766
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/f/f06b3e37fdf66bd189666db1386d52c2a757ec51.glb
+Counter 183217,183217,183217
+-0.539444 -0.001690 -0.540318 -> 0.539444 2.248466 0.540318
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/9/9ecd2c07aa50e8e2040b51cf20b517eb70462fb7.glb
+Counter 159855,159855,159855
+-0.154983 0.000136 -0.152687 -> 0.149994 0.300771 0.152291
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/0/018f52ea0b259b9134aaa3685171d7ffe624c3dc.glb
+Counter 4404,4404,4404
+-0.292100 0.000013 -0.292100 -> 0.292100 1.704593 0.292100
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/0/0299806a0f7bfcfe1b574d57834d8208c0f8c035.glb
+Counter 11002,11002,11002
+-0.842769 -0.000000 -1.081008 -> 0.833878 1.416273 1.081008
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/a/a62409c9dad2a4e7612ef932db2d03a192b56332.glb
+Counter 2667,2667,2667
+-0.279106 -0.000000 -0.058891 -> 0.279106 0.100951 0.058891
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/3/30523989850840a63546e6c2ba501b39f9642f10.glb
+Counter 194,194,194
+-0.804226 -0.000000 -0.198115 -> 0.804226 2.800001 0.198116
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/e/e96698321c8c3b7624a5ace5eed829b9eca191c1.glb
+Counter 1142,1142,1142
+-0.712872 0.000023 -0.876238 -> 0.712872 0.001023 0.876238
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/6/6d07c15cb6c5e4e698fe6c2b8e2434d0dee2274c.glb
+Counter 737,737,737
+-0.114998 0.000118 -0.145000 -> 0.115002 0.003581 0.145000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/5/5afe0e7ec04ac3d20d49e030cafd2af9b5d75b85.glb
+Counter 2353,2353,2353
+-0.447500 -0.000004 -0.385147 -> 0.447500 1.770000 0.385149
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/7/75ef5fb18ca78e6a3b2b056ea4c5246da4e3688a.glb
+Counter 3819,3819,3819
+-0.199999 -0.000000 -0.140000 -> 0.199999 0.190001 0.140000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/b/b02f7becf6dd309a2452a1b96cf8b8243042949c.glb
+Counter 31795,31795,31795
+-1.260000 0.000000 -1.259999 -> 1.260000 0.820001 1.260001
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/e/eee59ebbc41d1c62f94d465788d71e351e7500c2.glb
+Counter 8799,8799,8799
+-0.134321 -0.000000 -0.134321 -> 0.134321 0.830000 0.134321
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/a/a162b54f72a015f8066899145788fcfc278e5bf1.glb
+Counter 1406,1406,1406
+-0.185076 0.001194 -0.146187 -> 0.185076 0.229756 0.146187
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/3/3ab1114ef6786a97e7ad6a0cff617d4f576b33e2.glb
+Counter 1404,1404,1404
+-0.222678 -0.000898 -0.175888 -> 0.222678 0.274101 0.175888
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/3/3ef5a429d184e8b41659bc5c3b16b10d77127355.glb
+Counter 4415,4415,4415
+-0.121895 -0.000000 -0.168558 -> 0.178105 1.461550 0.224769
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/9/97cb7bbf846dff0e8036fb99ce1c8f8772b18a93.glb
+Counter 7946,7946,7946
+-0.624980 0.046663 -0.429772 -> 0.626903 0.101418 0.429612
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/e/e01080481e334e84ed9fb1100964dea0a9695c99.glb
+Counter 10899,10899,10899
+-0.349999 -0.000000 -0.550003 -> 0.349999 0.010000 0.550002
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/5/57fcfdae95b2c606c48dad87ed740bbeb48473dd.glb
+Counter 19486,19486,19486
+-0.531696 -0.572075 -0.531696 -> 0.531696 0.001698 0.531697
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/9/9fd477eebc74ec4087a2463596e26fefd54c4504.glb
+Counter 9504,9504,9504
+-0.662690 -0.324702 -0.663379 -> 0.664069 -0.000000 0.663379
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/e/e1a9587a529745ce4862afb74f40e7be72e87779.glb
+Counter 2729,2729,2729
+-0.207920 -0.003068 -0.171935 -> 0.207920 0.673202 0.171936
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/7/7da11d7a3071c9a9263295b325e88d767bbef8b4.glb
+Counter 85,85,85
+-1.150000 -0.000000 -0.800000 -> 1.150000 0.010000 0.800000
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ab541ddf6a38484c5fa53f5f642d8897133519c7/ab541ddf6a38484c5fa53f5f642d8897133519c7_part_4.glb
+Counter 1088,1088,1088
+-0.134371 0.000000 -0.176514 -> 0.134371 0.150580 0.176514
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ab541ddf6a38484c5fa53f5f642d8897133519c7/ab541ddf6a38484c5fa53f5f642d8897133519c7_part_1.glb
+Counter 4499,4499,4499
+-0.040523 0.031864 -0.113978 -> 0.040523 0.069704 0.019226
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ab541ddf6a38484c5fa53f5f642d8897133519c7/ab541ddf6a38484c5fa53f5f642d8897133519c7_part_3.glb
+Counter 6233,6233,6233
+-0.048086 0.041668 -0.122342 -> 0.048084 0.082501 0.033322
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ab541ddf6a38484c5fa53f5f642d8897133519c7/ab541ddf6a38484c5fa53f5f642d8897133519c7_part_2.glb
+Counter 7627,7627,7627
+-0.047365 0.030377 -0.128865 -> 0.047365 0.063894 0.011615
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ab541ddf6a38484c5fa53f5f642d8897133519c7/ab541ddf6a38484c5fa53f5f642d8897133519c7_part_5.glb
+Counter 10146,10146,10146
+-0.155239 0.000000 -0.168416 -> 0.155497 0.221005 0.110284
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/ab541ddf6a38484c5fa53f5f642d8897133519c7/ab541ddf6a38484c5fa53f5f642d8897133519c7_part_6.glb
+Counter 24,24,24
+-0.483299 0.000000 -0.018581 -> 0.483299 0.210589 0.018581
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/75af4e95bc1df613082a231485ce4143d5767754/75af4e95bc1df613082a231485ce4143d5767754_part_1.glb
+Counter 948,948,948
+-0.072621 -0.070513 -0.160984 -> 0.035258 0.028447 0.159581
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/decomposed/75af4e95bc1df613082a231485ce4143d5767754/75af4e95bc1df613082a231485ce4143d5767754_part_10.glb
+Counter 258,258,258
+-0.405246 0.000000 -0.765028 -> 0.495361 0.150000 0.734910
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/d/d0d1e39f55d3c03661b9716a6db1532568711f52.glb
+Counter 17128,17128,17128
+-0.450000 -0.006380 -0.450965 -> 0.450000 1.935050 0.450004
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/4/499ffdb8a280a0f0a3e6b6ac2b41ae3d191f8059.glb
+Counter 2095,2095,2095
+-0.168014 0.000007 -0.224497 -> 0.167975 0.390089 0.224515
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/c/c7b44f8bcad61222912d6fec0aa4b2b1f654fdf0.glb
+Counter 13314,13314,13314
+-0.377364 -0.000000 -0.434056 -> 0.377364 1.017489 0.434056
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/d/d42d4f924fafaf8c326cca055aa6f21b0852d32f.glb
+Counter 67095,67095,67095
+-0.863437 -0.000641 -0.228520 -> 0.863437 0.966170 0.237746
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/x/xxxx99b68487xa2bax4304x8767x2ec0a703d555.glb
+Counter 21474,21474,21474
+-0.282118 0.000000 -0.228059 -> 0.282118 0.658224 0.228059
+/home/luc/Development/madrona_raycast/madrona_escape_room/src/../data/hssd-hab/objects/0/0bd260f8efb1afe4ec095ef6dbe503cd1f127af8.glb
+Counter 30822,30822,30822
+-0.514281 0.000000 -0.240759 -> 0.514281 0.889028 0.240759
+vertex pointer: 0x73bc6e000000
+nodes pointer: 0x73bc3a000000
+BVHSDSDS 142

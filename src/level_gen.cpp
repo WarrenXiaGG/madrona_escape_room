@@ -78,19 +78,33 @@ void createPersistentEntities(Engine &ctx)
     printf("there are %d imported instances\n",
             (int)ctx.data().numImportedInstances);
 
-#if 0
+#if 1
     for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
         ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
-        Entity e_inst = ctx.makeEntity<DummyRenderable>();
-        ctx.get<Position>(e_inst) = imp_inst->position;
-        ctx.get<Rotation>(e_inst) = imp_inst->rotation;
-        ctx.get<Scale>(e_inst) = imp_inst->scale;
-        ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
+        phys::MeshBVH *mesh_bvh = (phys::MeshBVH *)(ctx.data().bvhs) + imp_inst->objectID;
 
-        render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+        if (mesh_bvh->magic == 0x69424269) {
+            Entity e_inst = ctx.makeEntity<DummyRenderable>();
+            ctx.get<Position>(e_inst) = imp_inst->position;
+            ctx.get<Rotation>(e_inst) = imp_inst->rotation;
+            ctx.get<Scale>(e_inst) = imp_inst->scale;
+            ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
 
-        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr = 
-            (void*)((madrona::phys::MeshBVH*)(ctx.data().bvhs)+ctx.get<ObjectID>(e_inst).idx);
+            render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+
+            Entity render_e = ctx.get<render::Renderable>(e_inst).renderEntity;
+            phys::MeshBVH *mesh_bvh = (phys::MeshBVH *)(ctx.data().bvhs) + imp_inst->objectID;
+
+            ctx.get<render::BVHModel>(render_e).ptr = mesh_bvh;
+
+            printf("Before start: %p and magic 0x%08x\n", mesh_bvh, mesh_bvh->magic);
+        }
+
+        // ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr = 
+            // (void*)((madrona::phys::MeshBVH*)(ctx.data().bvhs)+ctx.get<ObjectID>(e_inst).idx);
+
+        
+
         //printf("tester3 %x\n",ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr);
     }
 #endif
@@ -128,6 +142,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
         (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 
+#if 0
     e = ctx.data().floorPlane = ctx.makeRenderableEntity<DummyRenderable>();
     ctx.get<Position>(e) = Vector3{0,0,50.f};
     ctx.get<Rotation>(e) = Quat(1,0,0,0);
@@ -136,6 +151,7 @@ void createPersistentEntities(Engine &ctx)
     //render::RenderingSystem::makeEntityRenderable(ctx,e);
     ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
         (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
+#endif
 
     /*
     // Create the outer wall entities
@@ -206,7 +222,7 @@ void createPersistentEntities(Engine &ctx)
         Entity agent = ctx.data().agents[i] =
             ctx.makeRenderableEntity<Agent>();
         auto camera = ctx.makeEntity<DetatchedCamera>();
-            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = 0, .pitch = 0 };
+            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = math::pi, .pitch = 0 };
         // Create a render view for the agent
         render::RenderingSystem::attachEntityToView(ctx,
                 camera,
@@ -222,6 +238,12 @@ void createPersistentEntities(Engine &ctx)
         ctx.get<GrabState>(agent).constraintEntity = Entity::none();
         ctx.get<EntityType>(agent) = EntityType::Agent;
 
+        ctx.get<Rotation>(agent) = Quat::angleAxis(
+            math::pi/2.f,
+            math::up);
+        ctx.get<Rotation>(camera) = Quat::angleAxis(
+            math::pi/2.f,
+            math::up);
     }
 
     // Populate OtherAgents component, which maintains a reference to the
@@ -260,8 +282,12 @@ static void resetPersistentEntities(Engine &ctx)
 
          // Place the agents near the starting wall
          Vector3 pos {
-             5.f * (float)i, 0.f, 2.f
+             -8.f + 5.f * (float)i, 10.f, 15.f
          };
+
+         ctx.get<Rotation>(agent_entity) = Quat::angleAxis(
+             -math::pi,
+             math::up);
 
          auto camera = ctx.get<AgentCamera>(agent_entity).camera;
          ctx.get<Position>(camera) = ctx.get<Position>(agent_entity);
@@ -269,9 +295,6 @@ static void resetPersistentEntities(Engine &ctx)
          ctx.get<Scale>(camera) = Diag3x3{ 0.001,0.001,0.001 };
 
          ctx.get<Position>(agent_entity) = pos;
-         ctx.get<Rotation>(agent_entity) = Quat::angleAxis(
-             randInRangeCentered(ctx, math::pi / 4.f),
-             math::up);
 
          auto &grab_state = ctx.get<GrabState>(agent_entity);
          if (grab_state.constraintEntity != Entity::none()) {

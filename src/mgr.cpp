@@ -198,7 +198,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
 
     // Get the render objects needed from the habitat JSON
     std::string scene_path = std::filesystem::path(DATA_DIR) /
-        "hssd-hab/scenes-uncluttered/108736884_177263634.scene_instance.json";
+        "hssd-hab/scenes-uncluttered/108736656_177263304.scene_instance.json";
     auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
 
     std::vector<std::string> render_asset_paths;
@@ -211,7 +211,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
     render_asset_paths[(size_t)SimObjectDefault::Door] =
         (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Agent] =
-        (std::filesystem::path(DATA_DIR) / "cylinder_render.obj").string();
+        (std::filesystem::path(DATA_DIR) / "agent_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Button] =
         (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
     render_asset_paths[(size_t)SimObjectDefault::Plane] =
@@ -288,7 +288,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
     std::array<char, 1024> import_err;
     auto render_assets = imp::ImportedAssets::importFromDisk(
         render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
-        false);
+        true);
 
     std::cout << "Post importFromDisk numObjects = " << render_assets->objects.size() << std::endl;
     std::cout << "Post importFromDisk numInstances = " << render_assets->instances.size() << std::endl;
@@ -341,9 +341,10 @@ static std::vector<ImportedInstance> loadRenderObjects(
     }
 
     //for(size_t i = 0; i < render_asset_paths.size(); i++){
-    for (size_t i = 0; i < (size_t)SimObjectDefault::NumObjects; ++i) {
+    // for (size_t i = 0; i < (size_t)SimObjectDefault::NumObjects; ++i) {
+    for (size_t i = 0; i < render_asset_paths.size()-6; ++i) {
         std::string path = render_asset_paths[i];
-        std::cout << path << std::endl;
+        std::cout << std::endl << std::endl << path << std::endl;
         size_t nodePosOffset = nodes.size();
         size_t leafsOffset = leafGeos.size();
         size_t vertsOffset = vertices.size();
@@ -359,7 +360,10 @@ static std::vector<ImportedInstance> loadRenderObjects(
         bvh.leafGeos = (BVH_IMPLEMENTATION::LeafGeometry*)leafsOffset;
         bvh.vertices = (Vector3*)vertsOffset;
         bvh.rootAABB = root_aabb;
+        bvh.magic = 0x69424269;
 
+        printf("nodes offset %u; leafs offset %u; vertices offset %u\n",
+               nodePosOffset, leafsOffset, vertsOffset);
         printf("%f %f %f -> %f %f %f \n",
                 bvh.rootAABB.pMin.x, bvh.rootAABB.pMin.y, bvh.rootAABB.pMin.z,
                 bvh.rootAABB.pMax.x, bvh.rootAABB.pMax.y, bvh.rootAABB.pMax.z);
@@ -568,7 +572,8 @@ Manager::Impl * Manager::Impl::init(
             std::vector<BVH_IMPLEMENTATION::LeafMaterial> leafMats;
             std::vector<BVH_IMPLEMENTATION> bvhs;
             std::vector<Vector3> vertices;
-            auto imported_instances = loadRenderObjects(*render_mgr,bvhs,nodes,leafGeos,leafMats,vertices);
+            auto imported_instances = loadRenderObjects(
+                    *render_mgr, bvhs, nodes, leafGeos, leafMats, vertices);
 
             sim_cfg.renderBridge = render_mgr->bridge();
             sim_cfg.importedInstances = (ImportedInstance *)cu::allocGPU(
@@ -593,21 +598,24 @@ Manager::Impl * Manager::Impl::init(
             auto vertexPtr = (Vector3*)cu::allocGPU(vertices.size()*sizeof(Vector3));
             REQ_CUDA(cudaMemcpy(vertexPtr,vertices.data(),vertices.size()*sizeof(Vector3),cudaMemcpyHostToDevice));
 
+            printf("nodes at %p; num_nodes %u\n", nodePtr, nodes.size());
+            printf("geo at %p; num_geos %u\n", geoPtr, leafGeos.size());
+            printf("vertices at %p; num_verts %u\n", vertexPtr, vertices.size());
+
             printf("vertex pointer: %p\n", vertexPtr);
+            printf("nodes pointer: %p\n", nodePtr);
 
             //Fix BVH Pointers
             printf("BVHSDSDS %d\n",bvhs.size());
             for(size_t i = 0;i<bvhs.size();i++){
-                size_t numLeafs = (size_t)(bvhs[i].leafGeos);
+                size_t leavesOffset = (size_t)(bvhs[i].leafGeos);
                 bvhs[i].nodes = nodePtr + (size_t)(bvhs[i].nodes);
-                bvhs[i].leafGeos= geoPtr + numLeafs;
-                bvhs[i].leafMats = matPtr + numLeafs;
+                bvhs[i].leafGeos= geoPtr + leavesOffset;
+                bvhs[i].leafMats = matPtr + leavesOffset;
                 bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
 
                 printf("bvh vertex pointer now: %p\n",
                         bvhs[i].vertices);
-
-
             }
             REQ_CUDA(cudaMemcpy(bvhPtr,bvhs.data(),sizeof(BVH_IMPLEMENTATION)*bvhs.size(),cudaMemcpyHostToDevice));
             sim_cfg.bvhs = (void*)bvhPtr;

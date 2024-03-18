@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <madrona/mw_gpu_entry.hpp>
 
 #include "sim.hpp"
@@ -905,6 +906,42 @@ Sim::Sim(Engine &ctx,
 
     curWorldEpisode = 0;
     bvhs = cfg.bvhs;
+
+#if 0
+    phys::MeshBVH *mesh_bvhs = (phys::MeshBVH *)cfg.bvhs;
+    for (int bvh_idx = 0; bvh_idx < 10; ++bvh_idx) {
+        phys::MeshBVH *current_bvh = &mesh_bvhs[bvh_idx];
+
+        printf("############ PRINTING FOR BVH %d (%p) ###############\n", 
+               bvh_idx,
+               current_bvh);
+
+        printf("Node info:\n");
+        for (int node_idx = 0; node_idx < current_bvh->numNodes; ++node_idx) {
+            phys::MeshBVH::Node *current_node = &current_bvh->nodes[node_idx];
+
+            printf("\t(%p) Parent at %d\n", current_node, current_node->parentID);
+        }
+
+        printf("Triangle info:\n");
+        for (int geo_idx = 0; geo_idx < std::min(current_bvh->numLeaves, 30u); ++geo_idx) {
+            phys::MeshBVH::LeafGeometry *current_geo = &current_bvh->leafGeos[geo_idx];
+            printf("\t(%p) Triangel indices: %u %u %u\n",
+                    current_geo,
+                    current_geo->packedIndices[0].indices[0],
+                    current_geo->packedIndices[0].indices[1],
+                    current_geo->packedIndices[0].indices[2]);
+        }
+
+        printf("Vertex info:\n");
+        for (int vert_idx = 0; vert_idx < std::min(current_bvh->numVerts, 30u); ++vert_idx) {
+            math::Vector3 *current_vtx = &current_bvh->vertices[vert_idx];
+            printf("\t(%p) %f %f %f\n",
+                    current_vtx,
+                    current_vtx->x, current_vtx->y, current_vtx->z);
+        }
+    }
+#endif
 
     // Creates agents, walls, etc.
     createPersistentEntities(ctx);
