@@ -47,6 +47,9 @@ static inline void setupRigidBodyEntity(
     ctx.get<Scale>(e) = scale;
     ctx.get<ObjectID>(e) = obj_id;
     ctx.get<EntityType>(e) = entity_type;
+
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
+        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 }
 
 // Register the entity with the broadphase system
@@ -78,7 +81,7 @@ void createPersistentEntities(Engine &ctx)
     printf("there are %d imported instances\n",
             (int)ctx.data().numImportedInstances);
 
-#if 1
+#if 0
     for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
         ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
         phys::MeshBVH *mesh_bvh = (phys::MeshBVH *)(ctx.data().bvhs) + imp_inst->objectID;
@@ -120,6 +123,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
         (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 
+#if 0
     for (int x = 0; x < 3; ++x) {
         for (int y = 0; y < 3; ++y) {
             e = ctx.makeRenderableEntity<DummyRenderable>();
@@ -132,8 +136,9 @@ void createPersistentEntities(Engine &ctx)
                 (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
         }
     }
+#endif
 
-    e = ctx.data().floorPlane = ctx.makeRenderableEntity<DummyRenderable>();
+    e = ctx.makeRenderableEntity<DummyRenderable>();
     ctx.get<Position>(e) = Vector3{0,0,0};
     ctx.get<Rotation>(e) = Quat(1,0,0,0);
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
@@ -153,10 +158,10 @@ void createPersistentEntities(Engine &ctx)
         (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 #endif
 
-    /*
+#if 1
     // Create the outer wall entities
     // Behind
-    ctx.data().borders[0] = ctx.makeRenderableEntity<PhysicsEntity>();
+    ctx.data().borders[0] = ctx.makeRenderableEntity<DummyRenderable>();
     setupRigidBodyEntity(
         ctx,
         ctx.data().borders[0],
@@ -166,9 +171,8 @@ void createPersistentEntities(Engine &ctx)
             0,
         },
         Quat { 1, 0, 0, 0 },
-        SimObject::Wall,
+        SimObjectDefault::Wall,
         EntityType::Wall,
-        ResponseType::Static,
         Diag3x3 {
             consts::worldWidth + consts::wallWidth * 2,
             consts::wallWidth,
@@ -176,7 +180,7 @@ void createPersistentEntities(Engine &ctx)
         });
 
     // Right
-    ctx.data().borders[1] = ctx.makeRenderableEntity<PhysicsEntity>();
+    ctx.data().borders[1] = ctx.makeRenderableEntity<DummyRenderable>();
     setupRigidBodyEntity(
         ctx,
         ctx.data().borders[1],
@@ -186,9 +190,8 @@ void createPersistentEntities(Engine &ctx)
             0,
         },
         Quat { 1, 0, 0, 0 },
-        SimObject::Wall,
+        SimObjectDefault::Wall,
         EntityType::Wall,
-        ResponseType::Static,
         Diag3x3 {
             consts::wallWidth,
             consts::worldLength,
@@ -196,7 +199,7 @@ void createPersistentEntities(Engine &ctx)
         });
 
     // Left
-    ctx.data().borders[2] = ctx.makeRenderableEntity<PhysicsEntity>();
+    ctx.data().borders[2] = ctx.makeRenderableEntity<DummyRenderable>();
     setupRigidBodyEntity(
         ctx,
         ctx.data().borders[2],
@@ -206,14 +209,14 @@ void createPersistentEntities(Engine &ctx)
             0,
         },
         Quat { 1, 0, 0, 0 },
-        SimObject::Wall,
+        SimObjectDefault::Wall,
         EntityType::Wall,
-        ResponseType::Static,
         Diag3x3 {
             consts::wallWidth,
             consts::worldLength,
             2.f,
-        });*/
+        });
+#endif
 
     // Create agent entities. Note that this leaves a lot of components
     // uninitialized, these will be set during world generation, which is
@@ -222,7 +225,7 @@ void createPersistentEntities(Engine &ctx)
         Entity agent = ctx.data().agents[i] =
             ctx.makeRenderableEntity<Agent>();
         auto camera = ctx.makeEntity<DetatchedCamera>();
-            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = math::pi, .pitch = 0 };
+            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = 0, .pitch = 0 };
         // Create a render view for the agent
         render::RenderingSystem::attachEntityToView(ctx,
                 camera,
@@ -269,12 +272,12 @@ void createPersistentEntities(Engine &ctx)
 // reset their positions.
 static void resetPersistentEntities(Engine &ctx)
 {
-    //registerRigidBodyEntity(ctx, ctx.data().floorPlane, SimObject::Plane);
+    // registerRigidBodyEntity(ctx, ctx.data().floorPlane, SimObject::Plane);
 
-     /*for (CountT i = 0; i < 3; i++) {
+     for (CountT i = 0; i < 3; i++) {
          Entity wall_entity = ctx.data().borders[i];
-         registerRigidBodyEntity(ctx, wall_entity, SimObject::Wall);
-     }*/
+         // registerRigidBodyEntity(ctx, wall_entity, SimObject::Wall);
+     }
 
      for (CountT i = 0; i < consts::numAgents; i++) {
          Entity agent_entity = ctx.data().agents[i];
@@ -282,7 +285,7 @@ static void resetPersistentEntities(Engine &ctx)
 
          // Place the agents near the starting wall
          Vector3 pos {
-             -8.f + 5.f * (float)i, 10.f, 15.f
+             -8.f + 5.f * (float)i, 10.f, 6.f
          };
 
          ctx.get<Rotation>(agent_entity) = Quat::angleAxis(
@@ -335,7 +338,7 @@ static void makeEndWall(Engine &ctx,
     float door_center = randBetween(ctx, 0.75f * consts::doorWidth, 
         consts::worldWidth - 0.75f * consts::doorWidth);
     float left_len = door_center - 0.5f * consts::doorWidth;
-    Entity left_wall = ctx.makeRenderableEntity<PhysicsEntity>();
+    Entity left_wall = ctx.makeRenderableEntity<DummyRenderable>();
     setupRigidBodyEntity(
         ctx,
         left_wall,
@@ -356,7 +359,7 @@ static void makeEndWall(Engine &ctx,
 
     float right_len =
         consts::worldWidth - door_center - 0.5f * consts::doorWidth;
-    Entity right_wall = ctx.makeRenderableEntity<PhysicsEntity>();
+    Entity right_wall = ctx.makeRenderableEntity<DummyRenderable>();
     setupRigidBodyEntity(
         ctx,
         right_wall,
@@ -375,7 +378,7 @@ static void makeEndWall(Engine &ctx,
         });
     registerRigidBodyEntity(ctx, right_wall, SimObjectDefault::Wall);
 
-    Entity door = ctx.makeRenderableEntity<DoorEntity>();
+    Entity door = ctx.makeRenderableEntity<DummyRenderable>();
     setupRigidBodyEntity(
         ctx,
         door,
@@ -393,7 +396,6 @@ static void makeEndWall(Engine &ctx,
             1.75f,
         });
     registerRigidBodyEntity(ctx, door, SimObjectDefault::Door);
-    ctx.get<OpenState>(door).isOpen = false;
 
     room.walls[0] = left_wall;
     room.walls[1] = right_wall;
@@ -404,7 +406,7 @@ static Entity makeButton(Engine &ctx,
                          float button_x,
                          float button_y)
 {
-    Entity button = ctx.makeRenderableEntity<ButtonEntity>();
+    Entity button = ctx.makeRenderableEntity<DummyRenderable>();
     ctx.get<Position>(button) = Vector3 {
         button_x,
         button_y,
@@ -417,8 +419,9 @@ static Entity makeButton(Engine &ctx,
         0.2f,
     };
     ctx.get<ObjectID>(button) = ObjectID { (int32_t)SimObjectDefault::Button };
-    ctx.get<ButtonState>(button).isPressed = false;
-    ctx.get<EntityType>(button) = EntityType::Button;
+
+    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(button).renderEntity).ptr = 
+        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(button).idx;
 
     return button;
 }
@@ -428,7 +431,7 @@ static Entity makeCube(Engine &ctx,
                        float cube_y,
                        float scale = 1.f)
 {
-    Entity cube = ctx.makeRenderableEntity<PhysicsEntity>();
+    Entity cube = ctx.makeRenderableEntity<DummyRenderable>();
     setupRigidBodyEntity(
         ctx,
         cube,
@@ -455,6 +458,7 @@ static void setupDoor(Engine &ctx,
                       Span<const Entity> buttons,
                       bool is_persistent)
 {
+#if 0
     DoorProperties &props = ctx.get<DoorProperties>(door);
 
     for (CountT i = 0; i < buttons.size(); i++) {
@@ -462,6 +466,7 @@ static void setupDoor(Engine &ctx,
     }
     props.numButtons = (int32_t)buttons.size();
     props.isPersistent = is_persistent;
+#endif
 }
 
 // A room with a single button that needs to be pressed, the door stays open.
@@ -700,7 +705,7 @@ static void generateLevel(Engine &ctx)
 void generateWorld(Engine &ctx)
 {
     resetPersistentEntities(ctx);
-    //generateLevel(ctx);
+    generateLevel(ctx);
 }
 
 }

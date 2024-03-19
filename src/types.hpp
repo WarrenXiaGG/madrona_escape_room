@@ -254,8 +254,8 @@ namespace madEscape {
     > {
     };
 
-    struct DummyRenderable : public madrona::Archetype<Position,Rotation,Scale,ObjectID,madrona::render::Renderable
-            >{};
+struct DummyRenderable : public madrona::Archetype<Position,Rotation,Scale,ObjectID,EntityType,madrona::render::Renderable
+        >{};
 
 // Archetype for the doors blocking the end of each challenge room
 struct DoorEntity : public madrona::Archetype<
