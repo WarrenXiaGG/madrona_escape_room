@@ -344,8 +344,8 @@ static std::vector<ImportedInstance> loadRenderObjects(
         }
     }
 
-    //for(size_t i = 0; i < render_asset_paths.size(); i++){
-    // for (size_t i = 0; i < (size_t)SimObjectDefault::NumObjects; ++i) {
+    uint32_t num_mad_escape_verts = 0;
+
     for (size_t i = 0; i < render_asset_paths.size()-6; ++i) {
         std::string path = render_asset_paths[i];
         std::cout << std::endl << std::endl << path << std::endl;
@@ -366,6 +366,10 @@ static std::vector<ImportedInstance> loadRenderObjects(
         bvh.rootAABB = root_aabb;
         bvh.magic = 0x69424269;
 
+        if (i < (int)SimObjectDefault::NumObjects) {
+            num_mad_escape_verts += bvh.numVerts;
+        }
+
         printf("nodes offset %u; leafs offset %u; vertices offset %u\n",
                nodePosOffset, leafsOffset, vertsOffset);
         printf("%f %f %f -> %f %f %f \n",
@@ -375,7 +379,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
         bvhs.push_back(bvh);
     }
 
-    //render_assets->objects[7].meshes[9].
+    printf("MAD_ESCAPE_VERTS: %d\n", num_mad_escape_verts);
 
     render_mgr.loadObjects(render_assets->objects, materials, {
         { (std::filesystem::path(DATA_DIR) /
@@ -570,6 +574,8 @@ Manager::Impl * Manager::Impl::init(
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
+        uint32_t num_vertices = 0;
+
         if (render_mgr.has_value()) {
             std::vector<BVH_IMPLEMENTATION::Node> nodes;
             std::vector<BVH_IMPLEMENTATION::LeafGeometry> leafGeos;
@@ -623,6 +629,8 @@ Manager::Impl * Manager::Impl::init(
             }
             REQ_CUDA(cudaMemcpy(bvhPtr,bvhs.data(),sizeof(BVH_IMPLEMENTATION)*bvhs.size(),cudaMemcpyHostToDevice));
             sim_cfg.bvhs = (void*)bvhPtr;
+
+            num_vertices = vertices.size();
         } else {
             sim_cfg.renderBridge = nullptr;
         }
@@ -639,6 +647,7 @@ Manager::Impl * Manager::Impl::init(
             .worldDataAlignment = alignof(Sim),
             .numWorlds = mgr_cfg.numWorlds,
             .numExportedBuffers = (uint32_t)ExportID::NumExports, 
+            .numVertices = num_vertices,
         }, {
             { GPU_HIDESEEK_SRC_LIST },
             { GPU_HIDESEEK_COMPILE_FLAGS },

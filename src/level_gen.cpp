@@ -1,6 +1,8 @@
 #include "level_gen.hpp"
 #include "madrona/render/ecs.hpp"
 
+#define FLOORPLANNER
+
 namespace madEscape {
 
 using namespace madrona;
@@ -81,7 +83,7 @@ void createPersistentEntities(Engine &ctx)
     printf("there are %d imported instances\n",
             (int)ctx.data().numImportedInstances);
 
-#if 0
+#if defined(FLOORPLANNER)
     for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
         ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
         phys::MeshBVH *mesh_bvh = (phys::MeshBVH *)(ctx.data().bvhs) + imp_inst->objectID;
@@ -158,7 +160,7 @@ void createPersistentEntities(Engine &ctx)
         (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 #endif
 
-#if 1
+#if !defined(FLOORPLANNER)
     // Create the outer wall entities
     // Behind
     ctx.data().borders[0] = ctx.makeRenderableEntity<DummyRenderable>();
@@ -224,8 +226,15 @@ void createPersistentEntities(Engine &ctx)
     for (CountT i = 0; i < consts::numAgents; ++i) {
         Entity agent = ctx.data().agents[i] =
             ctx.makeRenderableEntity<Agent>();
+
+#if defined(FLOORPLANNER)
+        auto camera = ctx.makeEntity<DetatchedCamera>();
+            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = math::pi, .pitch = 0 };
+#else
         auto camera = ctx.makeEntity<DetatchedCamera>();
             ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = 0, .pitch = 0 };
+#endif
+
         // Create a render view for the agent
         render::RenderingSystem::attachEntityToView(ctx,
                 camera,
@@ -284,9 +293,15 @@ static void resetPersistentEntities(Engine &ctx)
          //registerRigidBodyEntity(ctx, agent_entity, SimObject::Agent);
 
          // Place the agents near the starting wall
+#if defined(FLOORPLANNER)
+         Vector3 pos {
+             -8.f + 5.f * (float)i, 10.f, 15.f
+         };
+#else
          Vector3 pos {
              -8.f + 5.f * (float)i, 10.f, 6.f
          };
+#endif
 
          ctx.get<Rotation>(agent_entity) = Quat::angleAxis(
              -math::pi,
@@ -705,7 +720,10 @@ static void generateLevel(Engine &ctx)
 void generateWorld(Engine &ctx)
 {
     resetPersistentEntities(ctx);
+
+#if defined(FLOORPLANNER)
     generateLevel(ctx);
+#endif
 }
 
 }
