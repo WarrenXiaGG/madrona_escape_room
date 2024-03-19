@@ -39,9 +39,11 @@ struct RenderGPUState {
 static inline Optional<RenderGPUState> initRenderGPUState(
     const Manager::Config &mgr_cfg)
 {
+#if 0
     if (mgr_cfg.extRenderDev || !mgr_cfg.enableBatchRenderer) {
         return Optional<RenderGPUState>::none();
     }
+#endif
 
     auto render_api_lib = render::APIManager::loadDefaultLib();
     render::APIManager render_api_mgr(render_api_lib.lib());
@@ -58,9 +60,11 @@ static inline Optional<render::RenderManager> initRenderManager(
     const Manager::Config &mgr_cfg,
     const Optional<RenderGPUState> &render_gpu_state)
 {
+#if 0
     if (!mgr_cfg.extRenderDev && !mgr_cfg.enableBatchRenderer) {
         return Optional<render::RenderManager>::none();
     }
+#endif
 
     render::APIBackend *render_api;
     render::GPUDevice *render_dev;
@@ -784,7 +788,8 @@ void Manager::step()
 {
     impl_->run();
 
-    if (impl_->renderMgr.has_value()) {
+    // if (impl_->renderMgr.has_value()) {
+    if (impl_->cfg.enableBatchRenderer) {
         impl_->renderMgr->readECS();
     }
 

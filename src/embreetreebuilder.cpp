@@ -3,9 +3,6 @@
 #include <iostream>
 #include <embree4/rtcore.h>
 #include <embree4/rtcore_common.h>
-#include <assimp/scene.h>
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
 #include <assert.h>
 #include <fstream>
 #include <cfloat>

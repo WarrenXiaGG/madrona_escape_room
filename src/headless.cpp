@@ -7,7 +7,9 @@
 #include <fstream>
 #include <random>
 
+#include <madrona/window.hpp>
 #include <madrona/heap_array.hpp>
+#include <madrona/render/render_mgr.hpp>
 
 using namespace madrona;
 
@@ -56,11 +58,24 @@ int main(int argc, char *argv[])
         }
     }
 
+    auto *render_mode = getenv("MADRONA_RENDER_MODE");
+
+    bool enable_batch_renderer =
+#ifdef MADRONA_MACOS
+        false;
+#else
+        render_mode[0] == '1';
+#endif
+
+    // WindowManager wm {};
+    // render::GPUHandle render_gpu = wm.initGPU(0, {});
+
     Manager mgr({
         .execMode = exec_mode,
         .gpuID = 0,
         .numWorlds = (uint32_t)num_worlds,
         .autoReset = false,
+        .enableBatchRenderer = enable_batch_renderer,
     });
 
     std::random_device rd;

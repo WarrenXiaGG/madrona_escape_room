@@ -112,4 +112,4 @@ if (TARGET madrona_viz)
 endif()
 
 add_executable(headless headless.cpp)
-target_link_libraries(headless PUBLIC madrona_mw_core mad_escape_mgr)
+target_link_libraries(headless PUBLIC madrona_mw_core mad_escape_mgr madrona_viz)
