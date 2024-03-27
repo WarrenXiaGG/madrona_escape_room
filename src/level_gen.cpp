@@ -49,9 +49,6 @@ static inline void setupRigidBodyEntity(
     ctx.get<Scale>(e) = scale;
     ctx.get<ObjectID>(e) = obj_id;
     ctx.get<EntityType>(e) = entity_type;
-
-    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
-        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 }
 
 // Register the entity with the broadphase system
@@ -86,9 +83,8 @@ void createPersistentEntities(Engine &ctx)
 #if defined(FLOORPLANNER)
     for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
         ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
-        phys::MeshBVH *mesh_bvh = (phys::MeshBVH *)(ctx.data().bvhs) + imp_inst->objectID;
 
-        if (mesh_bvh->magic == 0x69424269) {
+        if (imp_inst->objectID < ctx.data().numObjects - 6) {
             Entity e_inst = ctx.makeEntity<DummyRenderable>();
             ctx.get<Position>(e_inst) = imp_inst->position;
             ctx.get<Rotation>(e_inst) = imp_inst->rotation;
@@ -96,17 +92,10 @@ void createPersistentEntities(Engine &ctx)
             ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
 
             render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
-
-            Entity render_e = ctx.get<render::Renderable>(e_inst).renderEntity;
-            phys::MeshBVH *mesh_bvh = (phys::MeshBVH *)(ctx.data().bvhs) + imp_inst->objectID;
-
-            ctx.get<render::BVHModel>(render_e).ptr = mesh_bvh;
-
-            printf("Before start: %p and magic 0x%08x\n", mesh_bvh, mesh_bvh->magic);
         }
 
         // ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e_inst).renderEntity).ptr = 
-            // (void*)((madrona::phys::MeshBVH*)(ctx.data().bvhs)+ctx.get<ObjectID>(e_inst).idx);
+            // (void*)((madrona::render::MeshBVH*)(ctx.data().bvhs)+ctx.get<ObjectID>(e_inst).idx);
 
         
 
@@ -121,9 +110,6 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Rotation>(e) = Quat(1,0,0,0);
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Plane};
-    //render::RenderingSystem::makeEntityRenderable(ctx,e);
-    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
-        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 
 #if 0
     for (int x = 0; x < 3; ++x) {
@@ -135,7 +121,7 @@ void createPersistentEntities(Engine &ctx)
             ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
             //render::RenderingSystem::makeEntityRenderable(ctx,e);
             ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
-                (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
+                (render::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
         }
     }
 #endif
@@ -145,9 +131,6 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Rotation>(e) = Quat(1,0,0,0);
     ctx.get<Scale>(e) = Diag3x3{1,1,1};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
-    //render::RenderingSystem::makeEntityRenderable(ctx,e);
-    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
-        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 
 #if 0
     e = ctx.data().floorPlane = ctx.makeRenderableEntity<DummyRenderable>();
@@ -157,7 +140,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
     //render::RenderingSystem::makeEntityRenderable(ctx,e);
     ctx.get<render::BVHModel>(ctx.get<render::Renderable>(e).renderEntity).ptr = 
-        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
+        (render::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(e).idx;
 #endif
 
 #if !defined(FLOORPLANNER)
@@ -242,9 +225,6 @@ void createPersistentEntities(Engine &ctx)
                 { 0,0,0 });
 
         ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObjectDefault::Agent };
-
-        ctx.get<render::BVHModel>(ctx.get<render::Renderable>(agent).renderEntity).ptr = 
-            (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(agent).idx;
 
         ctx.get<Scale>(agent) = Diag3x3 { 1, 1, 1 };
         ctx.get<GrabState>(agent).constraintEntity = Entity::none();
@@ -434,9 +414,6 @@ static Entity makeButton(Engine &ctx,
         0.2f,
     };
     ctx.get<ObjectID>(button) = ObjectID { (int32_t)SimObjectDefault::Button };
-
-    ctx.get<render::BVHModel>(ctx.get<render::Renderable>(button).renderEntity).ptr = 
-        (phys::MeshBVH *)ctx.data().bvhs + ctx.get<ObjectID>(button).idx;
 
     return button;
 }

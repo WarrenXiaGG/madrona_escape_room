@@ -31,22 +31,6 @@ target_link_libraries(mad_escape_importer
         simdjson::simdjson
 )
 
-# SET(embree_DIR /home/warrenxia/Downloads/embree-4.3.1.x86_64.linux/lib/cmake/embree-4.3.1)
-SET(embree_DIR ~/Development/embree/lib/cmake/embree-4.3.1)
-FIND_PACKAGE(embree 4 REQUIRED)
-
-add_library(mad_escape_importertree STATIC
-    embreetreebuilder.hpp embreetreebuilder.cpp
-)
-
-target_link_libraries(mad_escape_importertree
-    PRIVATE
-        madrona_common
-        embree
-        madrona_libcxx
-)
-
-
 add_library(mad_escape_mgr STATIC
     mgr.hpp mgr.cpp
 )
@@ -55,7 +39,6 @@ target_link_libraries(mad_escape_mgr
     PUBLIC
         madrona_python_utils
         mad_escape_importer
-        mad_escape_importertree
     PRIVATE
         mad_escape_cpu_impl
         madrona_mw_cpu

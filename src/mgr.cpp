@@ -25,6 +25,7 @@
 using namespace madrona;
 using namespace madrona::math;
 using namespace madrona::phys;
+using namespace madrona::render;
 using namespace madrona::py;
 
 namespace madEscape {
@@ -39,11 +40,9 @@ struct RenderGPUState {
 static inline Optional<RenderGPUState> initRenderGPUState(
     const Manager::Config &mgr_cfg)
 {
-#if 0
     if (mgr_cfg.extRenderDev || !mgr_cfg.enableBatchRenderer) {
         return Optional<RenderGPUState>::none();
     }
-#endif
 
     auto render_api_lib = render::APIManager::loadDefaultLib();
     render::APIManager render_api_mgr(render_api_lib.lib());
@@ -60,11 +59,9 @@ static inline Optional<render::RenderManager> initRenderManager(
     const Manager::Config &mgr_cfg,
     const Optional<RenderGPUState> &render_gpu_state)
 {
-#if 0
     if (!mgr_cfg.extRenderDev && !mgr_cfg.enableBatchRenderer) {
         return Optional<render::RenderManager>::none();
     }
-#endif
 
     render::APIBackend *render_api;
     render::GPUDevice *render_dev;
@@ -191,14 +188,16 @@ struct Manager::CUDAImpl final : Manager::Impl {
 };
 #endif
 
-static std::vector<ImportedInstance> loadRenderObjects(
-        render::RenderManager &render_mgr, std::vector<BVH_IMPLEMENTATION>& bvhs,
-        std::vector<BVH_IMPLEMENTATION::Node>& nodes,
-        std::vector<BVH_IMPLEMENTATION::LeafGeometry>& leafGeos,
-        std::vector<BVH_IMPLEMENTATION::LeafMaterial>& leafMats,
-        std::vector<Vector3>& vertices)
+static imp::ImportedAssets loadRenderObjects(
+        render::RenderManager &render_mgr,
+        std::vector<ImportedInstance> &imported_instances)
 {
     //(void)bvh;
+    std::vector<render::MeshBVH::Node> nodes;
+    std::vector<render::MeshBVH::LeafGeometry> leafGeos;
+    std::vector<render::MeshBVH::LeafMaterial> leafMats;
+    std::vector<Vector3> vertices;
+    std::vector<render::MeshBVH> bvhs;
 
     // Get the render objects needed from the habitat JSON
     std::string scene_path = std::filesystem::path(DATA_DIR) /
@@ -228,16 +227,11 @@ static std::vector<ImportedInstance> loadRenderObjects(
     // All models in the habitat thing use the same material for now
     uint32_t habitat_material = 0;
 
-    // These are instances that will be added to all the worlds.
-    std::vector<ImportedInstance> imported_instances;
-
     float height_offset = 20.f;
-
-    size_t preHabitatIndex = render_asset_paths.size();
 
     // All the assets from the habitat JSON scene have object IDs which start at
     // SimObjectDefault::NumObjects
-    if (1) {
+    {
         imported_instances.push_back({
             .position = { 0.f, 0.f, 0.f + height_offset },
             .rotation = Quat::angleAxis(0.f, math::up),
@@ -285,23 +279,14 @@ static std::vector<ImportedInstance> loadRenderObjects(
 
     // std::array<const char *, (size_t)SimObjectDefault::NumObjects> render_asset_cstrs;
     std::vector<const char *> render_asset_cstrs;
-    for (size_t i = 0; i < render_asset_paths.size(); i++) {
+    for (size_t i = 0; i < render_asset_paths.size() - 6; i++) {
         render_asset_cstrs.push_back(render_asset_paths[i].c_str());
     }
 
     std::array<char, 1024> import_err;
     auto render_assets = imp::ImportedAssets::importFromDisk(
         render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
-        true);
-
-    std::cout << "Post importFromDisk numObjects = " << render_assets->objects.size() << std::endl;
-    std::cout << "Post importFromDisk numInstances = " << render_assets->instances.size() << std::endl;
-    std::cout << "Pre importFromDisk numAssets = " << render_asset_cstrs.size() << std::endl;
-
-    for (int i = 0; i < render_assets->instances.size(); ++i) {
-        //printf("Asset %d has base imported asset index %d\n", i,
-        //        (int)render_assets->instances[i].importedIndex);
-    }
+        true, true);
 
     if (!render_assets.has_value()) {
         FATAL("Failed to load render assets: %s", import_err);
@@ -344,43 +329,6 @@ static std::vector<ImportedInstance> loadRenderObjects(
         }
     }
 
-    uint32_t num_mad_escape_verts = 0;
-
-    for (size_t i = 0; i < render_asset_paths.size()-6; ++i) {
-        std::string path = render_asset_paths[i];
-        std::cout << std::endl << std::endl << path << std::endl;
-        size_t nodePosOffset = nodes.size();
-        size_t leafsOffset = leafGeos.size();
-        size_t vertsOffset = vertices.size();
-        madrona::math::AABB root_aabb;
-        EmbreeTreeBuilder::loadAndConvert(path, render_assets->objects[i],
-                                          bvhs, nodes, leafGeos,
-                                          leafMats, vertices, root_aabb, false, true);
-        BVH_IMPLEMENTATION bvh;
-        bvh.numLeaves = leafGeos.size() - leafsOffset;
-        bvh.numNodes = nodes.size() - nodePosOffset;
-        bvh.numVerts = vertices.size() - vertsOffset;
-        bvh.nodes = (BVH_IMPLEMENTATION::Node*)nodePosOffset;
-        bvh.leafGeos = (BVH_IMPLEMENTATION::LeafGeometry*)leafsOffset;
-        bvh.vertices = (Vector3*)vertsOffset;
-        bvh.rootAABB = root_aabb;
-        bvh.magic = 0x69424269;
-
-        if (i < (int)SimObjectDefault::NumObjects) {
-            num_mad_escape_verts += bvh.numVerts;
-        }
-
-        printf("nodes offset %u; leafs offset %u; vertices offset %u\n",
-               nodePosOffset, leafsOffset, vertsOffset);
-        printf("%f %f %f -> %f %f %f \n",
-                bvh.rootAABB.pMin.x, bvh.rootAABB.pMin.y, bvh.rootAABB.pMin.z,
-                bvh.rootAABB.pMax.x, bvh.rootAABB.pMax.y, bvh.rootAABB.pMax.z);
-
-        bvhs.push_back(bvh);
-    }
-
-    printf("MAD_ESCAPE_VERTS: %d\n", num_mad_escape_verts);
-
     render_mgr.loadObjects(render_assets->objects, materials, {
         { (std::filesystem::path(DATA_DIR) /
            "green_grid.png").string().c_str() },
@@ -392,7 +340,7 @@ static std::vector<ImportedInstance> loadRenderObjects(
         { true, math::Vector3{1.0f, -1.0f, -0.05f}, math::Vector3{1.0f, 1.0f, 1.0f} }
     });
 
-    return imported_instances;
+    return std::move(*render_assets);
 }
 
 static void loadPhysicsObjects(PhysicsLoader &loader)
@@ -574,63 +522,29 @@ Manager::Impl * Manager::Impl::init(
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
-        uint32_t num_vertices = 0;
+        imp::ImportedAssets::GPUGeometryData gpu_imported_assets;
+        std::vector<ImportedInstance> imported_instances;
 
         if (render_mgr.has_value()) {
-            std::vector<BVH_IMPLEMENTATION::Node> nodes;
-            std::vector<BVH_IMPLEMENTATION::LeafGeometry> leafGeos;
-            std::vector<BVH_IMPLEMENTATION::LeafMaterial> leafMats;
-            std::vector<BVH_IMPLEMENTATION> bvhs;
-            std::vector<Vector3> vertices;
-            auto imported_instances = loadRenderObjects(
-                    *render_mgr, bvhs, nodes, leafGeos, leafMats, vertices);
+            auto imported_assets = loadRenderObjects(
+                    *render_mgr, imported_instances);
+
+            auto gpu_imported_assets_opt =
+                imp::ImportedAssets::makeGPUData(imported_assets);
+
+            assert(gpu_imported_assets_opt.has_value());
+
+            gpu_imported_assets = std::move(*gpu_imported_assets_opt);
 
             sim_cfg.renderBridge = render_mgr->bridge();
             sim_cfg.importedInstances = (ImportedInstance *)cu::allocGPU(
                     sizeof(ImportedInstance) * imported_instances.size());
             sim_cfg.numImportedInstances = imported_instances.size();
+            sim_cfg.numObjects = gpu_imported_assets.numBVHs;
 
             REQ_CUDA(cudaMemcpy(sim_cfg.importedInstances, imported_instances.data(),
                                 sizeof(ImportedInstance) * imported_instances.size(),
                                 cudaMemcpyHostToDevice));
-
-            auto bvhPtr = (BVH_IMPLEMENTATION*)cu::allocGPU(bvhs.size()*sizeof(BVH_IMPLEMENTATION));
-
-            auto nodePtr = (BVH_IMPLEMENTATION::Node*)cu::allocGPU(nodes.size()*sizeof(BVH_IMPLEMENTATION::Node));
-            REQ_CUDA(cudaMemcpy(nodePtr,nodes.data(),nodes.size()*sizeof(BVH_IMPLEMENTATION::Node),cudaMemcpyHostToDevice));
-
-            auto geoPtr = (BVH_IMPLEMENTATION::LeafGeometry*)cu::allocGPU(leafGeos.size()*sizeof(BVH_IMPLEMENTATION::LeafGeometry));
-            REQ_CUDA(cudaMemcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(BVH_IMPLEMENTATION::LeafGeometry),cudaMemcpyHostToDevice));
-
-            auto matPtr = (BVH_IMPLEMENTATION::LeafMaterial*)cu::allocGPU(leafMats.size()*sizeof(BVH_IMPLEMENTATION::LeafMaterial));
-            REQ_CUDA(cudaMemcpy(matPtr,leafMats.data(),sizeof(BVH_IMPLEMENTATION::LeafMaterial)*leafMats.size(),cudaMemcpyHostToDevice));
-
-            auto vertexPtr = (Vector3*)cu::allocGPU(vertices.size()*sizeof(Vector3));
-            REQ_CUDA(cudaMemcpy(vertexPtr,vertices.data(),vertices.size()*sizeof(Vector3),cudaMemcpyHostToDevice));
-
-            printf("nodes at %p; num_nodes %u\n", nodePtr, nodes.size());
-            printf("geo at %p; num_geos %u\n", geoPtr, leafGeos.size());
-            printf("vertices at %p; num_verts %u\n", vertexPtr, vertices.size());
-
-            printf("vertex pointer: %p\n", vertexPtr);
-            printf("nodes pointer: %p\n", nodePtr);
-
-            //Fix BVH Pointers
-            printf("BVHSDSDS %d\n",bvhs.size());
-            for(size_t i = 0;i<bvhs.size();i++){
-                size_t leavesOffset = (size_t)(bvhs[i].leafGeos);
-                bvhs[i].nodes = nodePtr + (size_t)(bvhs[i].nodes);
-                bvhs[i].leafGeos= geoPtr + leavesOffset;
-                bvhs[i].leafMats = matPtr + leavesOffset;
-                bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
-
-                printf("bvh vertex pointer now: %p\n",
-                        bvhs[i].vertices);
-            }
-            REQ_CUDA(cudaMemcpy(bvhPtr,bvhs.data(),sizeof(BVH_IMPLEMENTATION)*bvhs.size(),cudaMemcpyHostToDevice));
-            sim_cfg.bvhs = (void*)bvhPtr;
-
-            num_vertices = vertices.size();
         } else {
             sim_cfg.renderBridge = nullptr;
         }
@@ -647,7 +561,7 @@ Manager::Impl * Manager::Impl::init(
             .worldDataAlignment = alignof(Sim),
             .numWorlds = mgr_cfg.numWorlds,
             .numExportedBuffers = (uint32_t)ExportID::NumExports, 
-            .numVertices = num_vertices,
+            .geometryData = &gpu_imported_assets,
         }, {
             { GPU_HIDESEEK_SRC_LIST },
             { GPU_HIDESEEK_COMPILE_FLAGS },
@@ -674,6 +588,7 @@ Manager::Impl * Manager::Impl::init(
 #endif
     } break;
     case ExecMode::CPU: {
+#if 0
         PhysicsLoader phys_loader(ExecMode::CPU, 10);
         loadPhysicsObjects(phys_loader);
 
@@ -687,11 +602,11 @@ Manager::Impl * Manager::Impl::init(
             initRenderManager(mgr_cfg, render_gpu_state);
 
         if (render_mgr.has_value()) {
-            std::vector<BVH_IMPLEMENTATION::Node> nodes;
-            std::vector<BVH_IMPLEMENTATION::LeafGeometry> leafGeos;
-            std::vector<BVH_IMPLEMENTATION::LeafMaterial> leafMats;
+            std::vector<render::MeshBVH::Node> nodes;
+            std::vector<render::MeshBVH::LeafGeometry> leafGeos;
+            std::vector<render::MeshBVH::LeafMaterial> leafMats;
             std::vector<Vector3> vertices;
-            std::vector<BVH_IMPLEMENTATION> bvhs;
+            std::vector<render::MeshBVH> bvhs;
 
             auto imported_instances = loadRenderObjects(*render_mgr,bvhs,nodes,leafGeos,leafMats,vertices);
             sim_cfg.renderBridge = render_mgr->bridge();
@@ -702,16 +617,16 @@ Manager::Impl * Manager::Impl::init(
             memcpy(sim_cfg.importedInstances, imported_instances.data(),
                    sizeof(ImportedInstance) * imported_instances.size());
 
-            auto bvhPtr = (BVH_IMPLEMENTATION*)malloc(bvhs.size()*sizeof(BVH_IMPLEMENTATION));
+            auto bvhPtr = (render::MeshBVH*)malloc(bvhs.size()*sizeof(render::MeshBVH));
 
-            auto nodePtr = (BVH_IMPLEMENTATION::Node*)malloc(nodes.size()*sizeof(BVH_IMPLEMENTATION::Node));
-            memcpy(nodePtr,nodes.data(),nodes.size()*sizeof(BVH_IMPLEMENTATION::Node));
+            auto nodePtr = (render::MeshBVH::Node*)malloc(nodes.size()*sizeof(render::MeshBVH::Node));
+            memcpy(nodePtr,nodes.data(),nodes.size()*sizeof(render::MeshBVH::Node));
 
-            auto geoPtr = (BVH_IMPLEMENTATION::LeafGeometry*)malloc(leafGeos.size()*sizeof(BVH_IMPLEMENTATION::LeafGeometry));
-            memcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(BVH_IMPLEMENTATION::LeafGeometry));
+            auto geoPtr = (render::MeshBVH::LeafGeometry*)malloc(leafGeos.size()*sizeof(render::MeshBVH::LeafGeometry));
+            memcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(render::MeshBVH::LeafGeometry));
 
-            auto matPtr = (BVH_IMPLEMENTATION::LeafMaterial*)malloc(leafMats.size()*sizeof(BVH_IMPLEMENTATION::LeafMaterial));
-            memcpy(matPtr,leafMats.data(),sizeof(BVH_IMPLEMENTATION::LeafMaterial)*leafMats.size());
+            auto matPtr = (render::MeshBVH::LeafMaterial*)malloc(leafMats.size()*sizeof(render::MeshBVH::LeafMaterial));
+            memcpy(matPtr,leafMats.data(),sizeof(render::MeshBVH::LeafMaterial)*leafMats.size());
 
             auto vertexPtr = (Vector3*)malloc(vertices.size()*sizeof(Vector3));
             memcpy(vertexPtr,vertices.data(),vertices.size()*sizeof(Vector3));
@@ -725,7 +640,7 @@ Manager::Impl * Manager::Impl::init(
                 bvhs[i].leafMats = matPtr + numLeafs;
                 bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
             }
-            memcpy(bvhPtr,bvhs.data(),sizeof(BVH_IMPLEMENTATION)*bvhs.size());
+            memcpy(bvhPtr,bvhs.data(),sizeof(render::MeshBVH)*bvhs.size());
 
             for(int i=0;i<bvhs.size();i++){
                 float t;
@@ -767,6 +682,8 @@ Manager::Impl * Manager::Impl::init(
         };
 
         return cpu_impl;
+#endif
+        return {};
     } break;
     default: MADRONA_UNREACHABLE();
     }
@@ -797,8 +714,8 @@ void Manager::step()
 {
     impl_->run();
 
-    // if (impl_->renderMgr.has_value()) {
-    if (impl_->cfg.enableBatchRenderer) {
+    if (impl_->renderMgr.has_value()) {
+    // if (impl_->cfg.enableBatchRenderer) {
         impl_->renderMgr->readECS();
     }
 

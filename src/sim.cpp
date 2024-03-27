@@ -7,7 +7,6 @@
 
 using namespace madrona;
 using namespace madrona::math;
-using namespace madrona::phys;
 
 namespace RenderingSystem = madrona::render::RenderingSystem;
 
@@ -889,6 +888,7 @@ Sim::Sim(Engine &ctx,
     
     importedInstances = cfg.importedInstances;
     numImportedInstances = cfg.numImportedInstances;
+    numObjects = cfg.numObjects;
 
     /*phys::RigidBodyPhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
         consts::deltaT, consts::numPhysicsSubsteps, -9.8f * math::up,
@@ -905,7 +905,6 @@ Sim::Sim(Engine &ctx,
     }
 
     curWorldEpisode = 0;
-    bvhs = cfg.bvhs;
 
 #if 0
     phys::MeshBVH *mesh_bvhs = (phys::MeshBVH *)cfg.bvhs;
