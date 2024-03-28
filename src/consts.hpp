@@ -50,8 +50,6 @@ inline constexpr float doorSpeed = 30.f;
 // Number of physics substeps
 inline constexpr madrona::CountT numPhysicsSubsteps = 4.f;
 
-inline constexpr int rayObservationWidth = 64;
-inline constexpr int rayObservationHeight = 64;
 inline constexpr float sensitivity = 0.5;
 
 }

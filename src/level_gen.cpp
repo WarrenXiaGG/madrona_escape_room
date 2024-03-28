@@ -314,8 +314,6 @@ static void resetPersistentEntities(Engine &ctx)
              .vrot = 1
          };
 
-         memset(ctx.get<RaycastObservation>(agent_entity).raycast,0,consts::rayObservationWidth*consts::rayObservationHeight);
-
          ctx.get<StepsRemaining>(agent_entity).t = consts::episodeLen;
      }
 }

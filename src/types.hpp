@@ -135,10 +135,6 @@ namespace madEscape {
         float pitch;
     };
 
-    struct RaycastObservation{
-        uint8_t raycast[consts::rayObservationWidth][consts::rayObservationHeight][3];
-    };
-
 // Number of steps remaining in the episode. Allows non-recurrent policies
 // to track the progression of time.
     struct StepsRemaining {
@@ -238,7 +234,6 @@ namespace madEscape {
             RoomEntityObservations,
             DoorObservation,
             Lidar,
-            RaycastObservation,
             StepsRemaining,
 
             // Reward, episode termination

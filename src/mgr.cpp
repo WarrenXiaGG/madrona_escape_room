@@ -93,19 +93,22 @@ struct Manager::Impl {
     Action *agentActionsBuffer;
     Optional<RenderGPUState> renderGPUState;
     Optional<render::RenderManager> renderMgr;
+    uint32_t raycastOutputResolution;
 
     inline Impl(const Manager::Config &mgr_cfg,
                 PhysicsLoader &&phys_loader,
                 WorldReset *reset_buffer,
                 Action *action_buffer,
                 Optional<RenderGPUState> &&render_gpu_state,
-                Optional<render::RenderManager> &&render_mgr)
+                Optional<render::RenderManager> &&render_mgr,
+                uint32_t raycast_output_resolution)
         : cfg(mgr_cfg),
           physicsLoader(std::move(phys_loader)),
           worldResetBuffer(reset_buffer),
           agentActionsBuffer(action_buffer),
           renderGPUState(std::move(render_gpu_state)),
-          renderMgr(std::move(render_mgr))
+          renderMgr(std::move(render_mgr)),
+          raycastOutputResolution(raycast_output_resolution)
     {}
 
     inline virtual ~Impl() {}
@@ -134,7 +137,8 @@ struct Manager::CPUImpl final : Manager::Impl {
                    TaskGraphT &&cpu_exec)
         : Impl(mgr_cfg, std::move(phys_loader),
                reset_buffer, action_buffer,
-               std::move(render_gpu_state), std::move(render_mgr)),
+               std::move(render_gpu_state), std::move(render_mgr),
+               mgr_cfg.raycastOutputResolution),
           cpuExec(std::move(cpu_exec))
     {}
 
@@ -167,7 +171,8 @@ struct Manager::CUDAImpl final : Manager::Impl {
                    MWCudaExecutor &&gpu_exec)
         : Impl(mgr_cfg, std::move(phys_loader),
                reset_buffer, action_buffer,
-               std::move(render_gpu_state), std::move(render_mgr)),
+               std::move(render_gpu_state), std::move(render_mgr),
+               mgr_cfg.raycastOutputResolution),
           gpuExec(std::move(gpu_exec))
     {}
 
@@ -562,6 +567,7 @@ Manager::Impl * Manager::Impl::init(
             .numWorlds = mgr_cfg.numWorlds,
             .numExportedBuffers = (uint32_t)ExportID::NumExports, 
             .geometryData = &gpu_imported_assets,
+            .raycastOutputResolution = mgr_cfg.raycastOutputResolution
         }, {
             { GPU_HIDESEEK_SRC_LIST },
             { GPU_HIDESEEK_COMPILE_FLAGS },
@@ -860,11 +866,13 @@ Tensor Manager::depthTensor() const
 
 Tensor Manager::raycastTensor() const
 {
+    uint32_t pixels_per_view = impl_->raycastOutputResolution *
+        impl_->raycastOutputResolution;
     return impl_->exportTensor(ExportID::Raycast,
                                Tensor::ElementType::UInt8,
                                {
                                    impl_->cfg.numWorlds*consts::numAgents,
-                                   sizeof(RaycastObservation),
+                                   pixels_per_view * 3,
                                });
 }
 

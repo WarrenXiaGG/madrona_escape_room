@@ -58,7 +58,6 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
     registry.registerComponent<OpenState>();
     registry.registerComponent<DoorProperties>();
     registry.registerComponent<Lidar>();
-    registry.registerComponent<RaycastObservation>();
     registry.registerComponent<StepsRemaining>();
     registry.registerComponent<EntityType>();
 
@@ -96,7 +95,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         (uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>(
         (uint32_t)ExportID::Done);
-    registry.exportColumn<render::RenderCameraArchetype, render::RenderOutput>(
+    registry.exportColumn<render::RaycastOutputArchetype, render::RenderOutputBuffer>(
         (uint32_t)ExportID::Raycast);
 }
 
@@ -522,96 +521,6 @@ inline void lidarSystem(Engine &ctx,
 #endif*/
 }
 
-inline void raycastSystem(Engine &ctx,
-                        Entity e,
-                        RaycastObservation &raycast,
-                        AgentCamera& camera,
-                        Position& position)
-{
-    /*printf("%d\n",ctx.worldID().idx);
-    Vector3 pos = ctx.get<Position>(e) + Vector3{0,0, 0};
-    Quat rot = eulerToQuat(camera.yaw,camera.pitch);
-
-    Vector3 agent_fwd = rot.rotateVec(math::fwd);
-    Vector3 right = rot.rotateVec(math::right);
-
-    Vector3 ray_start = pos;
-    Vector3 lookAt = eulerToQuat(camera.yaw, camera.pitch).rotateVec({ 0,1,0 });
-    constexpr float theta = toRadians(90);
-    const float h = tanf(theta/2);
-    const auto viewport_height = 2 * h;
-    const auto viewport_width = viewport_height;
-    const auto forward = lookAt.normalize();
-    auto u = cross({ 0,0,1 }, forward).normalize();
-
-    u = eulerToQuat(camera.yaw, camera.pitch).rotateVec({ 1,0,0 });
-    auto v = cross(forward, u).normalize();
-    auto horizontal =  u *  viewport_width;
-    auto vertical = v * viewport_height;
-    auto lower_left_corner = ray_start - horizontal / 2 - vertical / 2 + forward;
-
-    auto traceRay = [&](int32_t idx, int32_t subthread) {
-        int pixelY = idx / consts::rayObservationWidth;
-        int pixelX = idx % consts::rayObservationWidth;
-        float v = ((float)pixelY) / consts::rayObservationHeight;
-        float u = ((float)pixelX) / consts::rayObservationWidth;
-
-        Vector3 ray_dir = lower_left_corner + u * horizontal + v*vertical - ray_start;
-        ray_dir = ray_dir.normalize();
-
-        float t;
-        Vector3 normal = {0,0,0};
-        //(madrona::phys2::MeshBVH*)(ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
-        //bool hit = (ctx.data().bvh)->traceRay(ray_start,ray_dir,&t,&normal);
-        Vector3 lightDir = Vector3{0.5,0.5,0.5};
-        lightDir = lightDir.normalize();
-        float lightness = normal.dot(lightDir);
-        if(normal.length2() != 0){
-            lightness += 0.005;
-        }
-        //if(idx == 0)
-#ifdef MADRONA_GPU_MODE
-       // if(ctx.worldID().idx ==0){
-         //   printf("%d,%d,%d\n",threadIdx.x,pixelX,pixelY);
-        //}
-#endif
-        //printf("%d,%f,%f,%f\n",ctx.worldID().idx,normal.x,normal.y,normal.z);
-
-        if (hit && subthread == 0) {
-            raycast.raycast[pixelX][pixelY][0] = (normal.x * 0.5f + 0.5f) * 255;
-            raycast.raycast[pixelX][pixelY][1] = (normal.y * 0.5f + 0.5f) * 255;
-            raycast.raycast[pixelX][pixelY][2] = (normal.z * 0.5f + 0.5f) * 255;
-        }else if(subthread == 0){
-            raycast.raycast[pixelX][pixelY][0] = 0;
-            raycast.raycast[pixelX][pixelY][1] = 0;
-            raycast.raycast[pixelX][pixelY][2] = 0;
-        }
-        //raycast.raycast[pixelX][pixelY][0] = lightness*255;
-        //raycast.raycast[pixelX][pixelY][1] = lightness*255;
-        //raycast.raycast[pixelX][pixelY][2] = lightness*255;
-    };
-
-
-#ifdef MADRONA_GPU_MODE
-    int32_t idx = threadIdx.x;
-    //4 threads per ray
-    int32_t subgroup = idx / 4;
-    //printf("dispatch %d,%d,%d,%d\n",ctx.worldID().idx,threadIdx.x,threadIdx.y,threadIdx.z);
-    const int32_t mwgpu_warp_id = threadIdx.x / 32;
-    const int32_t mwgpu_warp_lane = threadIdx.x % 32;
-
-    if (idx < 256) {
-        for(int32_t rays = 0;rays<16;rays++){
-            traceRay(idx*16+rays,0);
-        }
-    }
-#else
-    for (CountT i = 0; i < consts::rayObservationWidth * consts::rayObservationHeight; i++) {
-        traceRay(i,0);
-    }
-#endif*/
-}
-
 // Computes reward for each agent and keeps track of the max distance achieved
 // so far through the challenge. Continuous reward is provided for any new
 // distance achieved.
@@ -678,9 +587,6 @@ inline void stepTrackerSystem(Engine &,
 
 }
 
-inline void testerSystem(Engine& ctx, render::BVHModel& r,render::InstanceData& id){
-    //printf("testerwhat %p, %p, %d,%d  %f,%f,%f\n",ctx.data().bvhs,r.ptr,id.objectID,id.worldIDX, id.position.x,id.position.y,id.position.z);
-}
 
 // Helper function for sorting nodes in the taskgraph.
 // Sorting is only supported / required on the GPU backend,
@@ -713,77 +619,6 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
             Position,
             AgentCamera
         >>({});
-    auto test_sys = builder.addToGraph<ParallelForNode<Engine,
-        testerSystem,
-            render::BVHModel,render::InstanceData
-        >>({});
-/*
-    // Scripted door behavior
-    auto set_door_pos_sys = builder.addToGraph<ParallelForNode<Engine,
-        setDoorPositionSystem,
-            Position,
-            OpenState
-        >>({move_sys});
-
-    // Build BVH for broadphase / raycasting
-    auto broadphase_setup_sys =
-        phys::RigidBodyPhysicsSystem::setupBroadphaseTasks(builder, 
-                                                           {set_door_pos_sys});
-
-    // Grab action, post BVH build to allow raycasting
-    auto grab_sys = builder.addToGraph<ParallelForNode<Engine,
-        grabSystem,
-            Entity,
-            Position,
-            Rotation,
-            Action,
-            GrabState
-        >>({broadphase_setup_sys});
-
-    // Physics collision detection and solver
-    auto substep_sys = phys::RigidBodyPhysicsSystem::setupSubstepTasks(builder,
-        {grab_sys}, consts::numPhysicsSubsteps);
-
-    // Improve controllability of agents by setting their velocity to 0
-    // after physics is done.
-    auto agent_zero_vel = builder.addToGraph<ParallelForNode<Engine,
-        agentZeroVelSystem, Velocity, Action>>(
-            {substep_sys});
-
-    // Finalize physics subsystem work
-    auto phys_done = phys::RigidBodyPhysicsSystem::setupCleanupTasks(
-        builder, {agent_zero_vel});
-
-    // Check buttons
-    auto button_sys = builder.addToGraph<ParallelForNode<Engine,
-        buttonSystem,
-            Position,
-            ButtonState
-        >>({phys_done});
-
-    // Set door to start opening if button conditions are met
-    auto door_open_sys = builder.addToGraph<ParallelForNode<Engine,
-        doorOpenSystem,
-            OpenState,
-            DoorProperties
-        >>({button_sys});
-
-    // Compute initial reward now that physics has updated the world state
-    auto reward_sys = builder.addToGraph<ParallelForNode<Engine,
-         rewardSystem,
-            Position,bonus_reward_
-            Progress,
-            Reward
-        >>({move_sys});
-
-    // Assign partner's reward
-    auto bonus_reward_sys = builder.addToGraph<ParallelForNode<Engine,
-         bonusRewardSystem,
-            OtherAgents,
-            Progress,
-            Reward
-        >>({reward_sys});
-*/
     // Check if the episode is over
     auto done_sys = builder.addToGraph<ParallelForNode<Engine,
         stepTrackerSystem,
@@ -826,35 +661,7 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
             RoomEntityObservations,
             DoorObservation
         >>({reset_sys});
-#ifdef MADRONA_GPU_MODE
-    auto raycast = builder.addToGraph<CustomParallelForNode<Engine,
-        raycastSystem, 256, 1,
-#else
-    auto raycast = builder.addToGraph<ParallelForNode<Engine,
-            raycastSystem,
-#endif
-            Entity,
-            RaycastObservation,
-            AgentCamera,
-            Position
-        >>({reset_sys});
 
-    // The lidar system
-/*#ifdef MADRONA_GPU_MODE
-    // Note the use of CustomParallelForNode to create a taskgraph node
-    // that launches a warp of threads (32) for each invocation (1).
-    // The 32, 1 parameters could be changed to 32, 32 to create a system
-    // that cooperatively processes 32 entities within a warp.
-    auto lidar = builder.addToGraph<CustomParallelForNode<Engine,
-        lidarSystem, 256, 1,
-#else
-    auto lidar = builder.addToGraph<ParallelForNode<Engine,
-        lidarSystem,
-#endif
-            Entity,
-            Lidar
-        >>({post_reset_broadphase});
-*/
     RenderingSystem::setupTasks(builder, {reset_sys});
 
 #ifdef MADRONA_GPU_MODE

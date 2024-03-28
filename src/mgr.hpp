@@ -26,6 +26,7 @@ public:
         uint32_t batchRenderViewHeight = 64;
         madrona::render::APIBackend *extRenderAPI = nullptr;
         madrona::render::GPUDevice *extRenderDev = nullptr;
+        uint32_t raycastOutputResolution = 64;
     };
 
     Manager(const Config &cfg);
