@@ -23,6 +23,7 @@ struct AdditionalInstance {
     std::filesystem::path gltfPath;
     float pos[3];
     float rotation[4];
+    float scale[3];
     bool dynamic;
 };
 

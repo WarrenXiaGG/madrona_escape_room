@@ -105,7 +105,26 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
 
             if (!res) {
                 for (auto c : rotation_obj) {
-                    additional_inst.rotation[3 - idx++] = float(double(c));
+                    additional_inst.rotation[idx++] = float(double(c));
+                } 
+            } else {
+                additional_inst.rotation[0] = 1;
+                additional_inst.rotation[1] = 0;
+                additional_inst.rotation[2] = 0;
+                additional_inst.rotation[3] = 0;
+            }
+
+            idx = 0;
+            simdjson::dom::array scale;
+            res = inst.at_key("non_uniform_scale").get(scale);
+
+            if (!res) {
+                for (auto c : scale) {
+                    additional_inst.scale[idx++] = float(double(c));
+                }
+            } else {
+                for(int i = 0; i < 3; i++){
+                    additional_inst.scale[i] = 1;
                 }
             }
 

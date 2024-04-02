@@ -234,13 +234,26 @@ static imp::ImportedAssets loadRenderObjects(
 
     float height_offset = 20.f;
 
+    float scale = 10.f;
+
     // All the assets from the habitat JSON scene have object IDs which start at
     // SimObjectDefault::NumObjects
     {
+#if 0
         imported_instances.push_back({
             .position = { 0.f, 0.f, 0.f + height_offset },
             .rotation = Quat::angleAxis(0.f, math::up),
             .scale = { 1.f, 1.f, 1.f },
+            .objectID = (int32_t)render_asset_paths.size(),
+        });
+#endif
+
+        imported_instances.push_back({
+            .position = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
+                        rotateVec({ 0.f, 0.f, 0.f + height_offset }) * scale,
+            .rotation = Quat::angleAxis(pi_d2,{ 1.f, 0.f, 0.f }) *
+                        Quat::angleAxis(0.f, math::up),
+            .scale = { scale, scale, scale },
             .objectID = (int32_t)render_asset_paths.size(),
         });
 
@@ -255,6 +268,7 @@ static imp::ImportedAssets loadRenderObjects(
                     render_asset_paths.size());
             if (insert_success) {
                 // Push the instance to the instnaces array and load gltf
+#if 0
                 ImportedInstance new_inst = {
                     .position = {inst.pos[0], inst.pos[1], inst.pos[2] + height_offset},
                     .rotation = {inst.rotation[3], inst.rotation[0], 
@@ -262,16 +276,57 @@ static imp::ImportedAssets loadRenderObjects(
                     .scale = {1.f, 1.f, 1.f},
                     .objectID = (int32_t)render_asset_paths.size(),
                 };
+#endif
+
+                auto pos = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
+                           rotateVec(Vector3{ inst.pos[0], inst.pos[1], 
+                                              inst.pos[2] + height_offset });
+
+                auto scale_vec = madrona::math::Diag3x3 {
+                    inst.scale[0] * scale,
+                    inst.scale[1] * scale,
+                    inst.scale[2] * scale
+                };
+                
+                ImportedInstance new_inst = {
+                    .position = {pos.x * scale, pos.y * scale, pos.z * scale},
+                    .rotation = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }) * 
+                                Quat{ inst.rotation[0], inst.rotation[1],
+                                      inst.rotation[2], inst.rotation[3] },
+                    .scale = scale_vec,
+                    .objectID = (int32_t)render_asset_paths.size(),
+                };
 
                 imported_instances.push_back(new_inst);
                 render_asset_paths.push_back(inst.gltfPath.string());
             } else {
                 // Push the instance to the instances array
+#if 0
                 ImportedInstance new_inst = {
                     .position = {inst.pos[0], inst.pos[1], inst.pos[2] + height_offset},
                     .rotation = {inst.rotation[3], inst.rotation[0], 
                                  inst.rotation[1], inst.rotation[2]},
                     .scale = {1.f, 1.f, 1.f},
+                    .objectID = (int32_t)iter->second,
+                };
+#endif
+
+                auto pos = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
+                           rotateVec(Vector3{ inst.pos[0], inst.pos[1], 
+                                              inst.pos[2] + height_offset });
+
+                auto scale_vec = madrona::math::Diag3x3 {
+                    inst.scale[0] * scale,
+                    inst.scale[1] * scale,
+                    inst.scale[2] * scale
+                };
+
+                ImportedInstance new_inst = {
+                    .position = {pos.x * scale,pos.y * scale,pos.z * scale},
+                    .rotation = Quat::angleAxis(pi_d2,{ 1.f, 0.f, 0.f }) *
+                                Quat{ inst.rotation[0], inst.rotation[1],
+                                      inst.rotation[2], inst.rotation[3] },
+                    .scale = scale_vec,
                     .objectID = (int32_t)iter->second,
                 };
 
