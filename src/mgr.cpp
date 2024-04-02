@@ -202,7 +202,7 @@ struct Manager::CUDAImpl final : Manager::Impl {
 #define LOAD_ENV 2
 
 static imp::ImportedAssets loadRenderObjects(
-        render::RenderManager &render_mgr,
+        Optional<render::RenderManager> &render_mgr,
         std::vector<ImportedInstance> &imported_instances)
 {
     //(void)bvh;
@@ -406,16 +406,18 @@ static imp::ImportedAssets loadRenderObjects(
         }
     }
 
-    render_mgr.loadObjects(render_assets->objects, materials, {
-        { (std::filesystem::path(DATA_DIR) /
-           "green_grid.png").string().c_str() },
-        { (std::filesystem::path(DATA_DIR) /
-           "smile.png").string().c_str() },
-    });
+    if (render_mgr.has_value()) {
+        render_mgr->loadObjects(render_assets->objects, materials, {
+            { (std::filesystem::path(DATA_DIR) /
+               "green_grid.png").string().c_str() },
+            { (std::filesystem::path(DATA_DIR) /
+               "smile.png").string().c_str() },
+        });
 
-    render_mgr.configureLighting({
-        { true, math::Vector3{1.0f, -1.0f, -0.05f}, math::Vector3{1.0f, 1.0f, 1.0f} }
-    });
+        render_mgr->configureLighting({
+            { true, math::Vector3{1.0f, -1.0f, -0.05f}, math::Vector3{1.0f, 1.0f, 1.0f} }
+        });
+    }
 
     return std::move(*render_assets);
 }
@@ -602,26 +604,27 @@ Manager::Impl * Manager::Impl::init(
         imp::ImportedAssets::GPUGeometryData gpu_imported_assets;
         std::vector<ImportedInstance> imported_instances;
 
+        auto imported_assets = loadRenderObjects(
+                render_mgr, imported_instances);
+
+        auto gpu_imported_assets_opt =
+            imp::ImportedAssets::makeGPUData(imported_assets);
+
+        assert(gpu_imported_assets_opt.has_value());
+
+        gpu_imported_assets = std::move(*gpu_imported_assets_opt);
+
+        sim_cfg.importedInstances = (ImportedInstance *)cu::allocGPU(
+                sizeof(ImportedInstance) * imported_instances.size());
+        sim_cfg.numImportedInstances = imported_instances.size();
+        sim_cfg.numObjects = gpu_imported_assets.numBVHs;
+
+        REQ_CUDA(cudaMemcpy(sim_cfg.importedInstances, imported_instances.data(),
+                            sizeof(ImportedInstance) * imported_instances.size(),
+                            cudaMemcpyHostToDevice));
+
         if (render_mgr.has_value()) {
-            auto imported_assets = loadRenderObjects(
-                    *render_mgr, imported_instances);
-
-            auto gpu_imported_assets_opt =
-                imp::ImportedAssets::makeGPUData(imported_assets);
-
-            assert(gpu_imported_assets_opt.has_value());
-
-            gpu_imported_assets = std::move(*gpu_imported_assets_opt);
-
             sim_cfg.renderBridge = render_mgr->bridge();
-            sim_cfg.importedInstances = (ImportedInstance *)cu::allocGPU(
-                    sizeof(ImportedInstance) * imported_instances.size());
-            sim_cfg.numImportedInstances = imported_instances.size();
-            sim_cfg.numObjects = gpu_imported_assets.numBVHs;
-
-            REQ_CUDA(cudaMemcpy(sim_cfg.importedInstances, imported_instances.data(),
-                                sizeof(ImportedInstance) * imported_instances.size(),
-                                cudaMemcpyHostToDevice));
         } else {
             sim_cfg.renderBridge = nullptr;
         }

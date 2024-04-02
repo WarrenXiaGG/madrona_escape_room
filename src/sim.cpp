@@ -707,7 +707,8 @@ Sim::Sim(Engine &ctx,
     initRandKey = cfg.initRandKey;
     autoReset = cfg.autoReset;
 
-    enableRender = cfg.renderBridge != nullptr;
+    // enableRender = cfg.renderBridge != nullptr;
+    enableRender = true;
 
     if (enableRender) {
         RenderingSystem::init(ctx, cfg.renderBridge);
