@@ -22,6 +22,8 @@
 #include <madrona/cuda_utils.hpp>
 #endif
 
+#define MADRONA_VIEWER
+
 using namespace madrona;
 using namespace madrona::math;
 using namespace madrona::phys;
@@ -40,9 +42,11 @@ struct RenderGPUState {
 static inline Optional<RenderGPUState> initRenderGPUState(
     const Manager::Config &mgr_cfg)
 {
+#if defined(MADRONA_VIEWER)
     if (mgr_cfg.extRenderDev || !mgr_cfg.enableBatchRenderer) {
         return Optional<RenderGPUState>::none();
     }
+#endif
 
     auto render_api_lib = render::APIManager::loadDefaultLib();
     render::APIManager render_api_mgr(render_api_lib.lib());
@@ -59,9 +63,11 @@ static inline Optional<render::RenderManager> initRenderManager(
     const Manager::Config &mgr_cfg,
     const Optional<RenderGPUState> &render_gpu_state)
 {
+#if defined(MADRONA_VIEWER)
     if (!mgr_cfg.extRenderDev && !mgr_cfg.enableBatchRenderer) {
         return Optional<render::RenderManager>::none();
     }
+#endif
 
     render::APIBackend *render_api;
     render::GPUDevice *render_dev;
@@ -193,6 +199,8 @@ struct Manager::CUDAImpl final : Manager::Impl {
 };
 #endif
 
+#define LOAD_ENV 2
+
 static imp::ImportedAssets loadRenderObjects(
         render::RenderManager &render_mgr,
         std::vector<ImportedInstance> &imported_instances)
@@ -204,9 +212,18 @@ static imp::ImportedAssets loadRenderObjects(
     std::vector<Vector3> vertices;
     std::vector<render::MeshBVH> bvhs;
 
+#if LOAD_ENV == 0
     // Get the render objects needed from the habitat JSON
     std::string scene_path = std::filesystem::path(DATA_DIR) /
         "hssd-hab/scenes-uncluttered/108736656_177263304.scene_instance.json";
+#elif LOAD_ENV == 1
+    std::string scene_path = std::filesystem::path(DATA_DIR) /
+        "hssd-hab/scenes-uncluttered/105515286_173104287.scene_instance.json";
+#elif LOAD_ENV == 2
+    std::string scene_path = std::filesystem::path(DATA_DIR) /
+        "hssd-hab/scenes-uncluttered/107734254_176000121.scene_instance.json";
+#endif
+
     auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
 
     std::vector<std::string> render_asset_paths;
@@ -775,8 +792,11 @@ void Manager::step()
 {
     impl_->run();
 
+#if defined(MADRONA_VIEWER)
     if (impl_->renderMgr.has_value()) {
-    // if (impl_->cfg.enableBatchRenderer) {
+#else
+    if (impl_->cfg.enableBatchRenderer) {
+#endif
         impl_->renderMgr->readECS();
     }
 

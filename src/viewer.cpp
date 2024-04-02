@@ -81,7 +81,19 @@ int main(int argc, char *argv[])
 
     printf("premanage: \n");
 
+    auto *resolution_str = getenv("MADRONA_RENDER_RESOLUTION");
+
     uint32_t raycast_output_resolution = 32;
+
+    if (resolution_str[0] == '0') {
+        raycast_output_resolution *= 1;
+    } else if (resolution_str[0] == '1') {
+        raycast_output_resolution *= 2;
+    } else if (resolution_str[0] == '2') {
+        raycast_output_resolution *= 4;
+    } else if (resolution_str[0] == '3') {
+        raycast_output_resolution *= 8;
+    }
 
     // Create the simulation manager
     Manager mgr({

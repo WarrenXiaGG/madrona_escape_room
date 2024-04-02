@@ -186,6 +186,8 @@ inline void movementSystem(Engine &ctx,
     ctx.get<Rotation>(cam.camera) = eulerToQuat(cam.yaw, cam.pitch);
     rot = eulerToQuat(cam.yaw, 0);
 
+    printf("Position: %f %f %f\n", pos.x, pos.y, pos.z);
+
     //printf("%f,%f,%f\n",pos.x,pos.y,pos.z);
 }
 

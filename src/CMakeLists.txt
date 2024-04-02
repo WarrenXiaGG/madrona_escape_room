@@ -86,6 +86,10 @@ if (TARGET madrona_viz)
         PRIVATE
         madrona_mw_core madrona_viz)
 
+    target_compile_definitions(viewer PUBLIC
+        -DMADRONA_VIEWER
+    )
+
     if (TARGET madrona_cuda)
         target_link_libraries(viewer PRIVATE madrona_cuda)
     endif()

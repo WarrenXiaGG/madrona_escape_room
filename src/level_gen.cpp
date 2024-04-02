@@ -268,6 +268,11 @@ static void resetPersistentEntities(Engine &ctx)
          // registerRigidBodyEntity(ctx, wall_entity, SimObject::Wall);
      }
 
+     Vector3 set_positions[2] = {
+         { -54.578835, -120.999626, 15.000000 },
+         { -17.440760, -148.498077, 11.000000 }
+     };
+
      for (CountT i = 0; i < consts::numAgents; i++) {
          Entity agent_entity = ctx.data().agents[i];
          //registerRigidBodyEntity(ctx, agent_entity, SimObject::Agent);
@@ -277,6 +282,8 @@ static void resetPersistentEntities(Engine &ctx)
          Vector3 pos {
              -8.f + 5.f * (float)i, 10.f, 15.f
          };
+
+         pos = set_positions[i];
 #else
          Vector3 pos {
              -8.f + 5.f * (float)i, 10.f, 6.f
