@@ -98,6 +98,7 @@ void createPersistentEntities(Engine &ctx)
 #endif
 
 
+#if 0
     Entity e = ctx.makeRenderableEntity<DummyRenderable>();
     ctx.get<Position>(e) = Vector3{0,0,0};
     ctx.get<Rotation>(e) = Quat(1,0,0,0);
@@ -121,6 +122,7 @@ void createPersistentEntities(Engine &ctx)
     ctx.get<Rotation>(e) = Quat(1,0,0,0);
     ctx.get<Scale>(e) = Diag3x3{30,30,30};
     ctx.get<ObjectID>(e) = {(int32_t)SimObjectDefault::Cube};
+#endif
 
 
 #if !defined(FLOORPLANNER) && 0
@@ -183,6 +185,10 @@ void createPersistentEntities(Engine &ctx)
         });
 #endif
 
+     float yaws[2] = {
+         1.141593f, -2.641593
+     };
+
     // Create agent entities. Note that this leaves a lot of components
     // uninitialized, these will be set during world generation, which is
     // called for every episode.
@@ -192,10 +198,10 @@ void createPersistentEntities(Engine &ctx)
 
 #if defined(FLOORPLANNER)
         auto camera = ctx.makeEntity<DetatchedCamera>();
-            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = math::pi, .pitch = 0 };
+            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = yaws[i], .pitch = 0 };
 #else
         auto camera = ctx.makeEntity<DetatchedCamera>();
-            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = 0, .pitch = 0 };
+            ctx.get<AgentCamera>(agent) = { .camera = camera, .yaw = yaws[i], .pitch = 0 };
 #endif
 
         // Create a render view for the agent
@@ -249,8 +255,12 @@ static void resetPersistentEntities(Engine &ctx)
      }
 
      Vector3 set_positions[2] = {
-         { -54.578835, -120.999626, 15.000000 },
-         { -17.440760, -148.498077, 11.000000 }
+         { -23.289743, 34.212898, 13.000000 },
+         { -94.375542, 74.301033, 12.000000 }
+     };
+
+     float yaws[2] = {
+         1.141593f, -2.641593
      };
 
      for (CountT i = 0; i < consts::numAgents; i++) {
@@ -683,7 +693,7 @@ void generateWorld(Engine &ctx)
 {
     resetPersistentEntities(ctx);
 
-#if defined(FLOORPLANNER)
+#if defined(FLOORPLANNER) && 0
     generateLevel(ctx);
 #endif
 }

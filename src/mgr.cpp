@@ -202,7 +202,7 @@ struct Manager::CUDAImpl final : Manager::Impl {
 };
 #endif
 
-#define LOAD_ENV 2
+#define LOAD_ENV 0
 
 static imp::ImportedAssets loadRenderObjects(
         Optional<render::RenderManager> &render_mgr,
@@ -252,7 +252,7 @@ static imp::ImportedAssets loadRenderObjects(
     // All models in the habitat thing use the same material for now
     uint32_t habitat_material = 0;
 
-    float height_offset = 20.f;
+    float height_offset = 0.f;
 
     float scale = 10.f;
 
@@ -287,17 +287,6 @@ static imp::ImportedAssets loadRenderObjects(
             auto [iter, insert_success] = loaded_gltfs.emplace(inst.gltfPath.string(), 
                     render_asset_paths.size());
             if (insert_success) {
-                // Push the instance to the instnaces array and load gltf
-#if 0
-                ImportedInstance new_inst = {
-                    .position = {inst.pos[0], inst.pos[1], inst.pos[2] + height_offset},
-                    .rotation = {inst.rotation[3], inst.rotation[0], 
-                                 inst.rotation[1], inst.rotation[2]},
-                    .scale = {1.f, 1.f, 1.f},
-                    .objectID = (int32_t)render_asset_paths.size(),
-                };
-#endif
-
                 auto pos = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
                            rotateVec(Vector3{ inst.pos[0], inst.pos[1], 
                                               inst.pos[2] + height_offset });

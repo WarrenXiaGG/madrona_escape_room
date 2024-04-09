@@ -101,26 +101,11 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 
 static inline void cleanupWorld(Engine &ctx)
 {
-    // Destroy current level entities
     LevelState &level = ctx.singleton<LevelState>();
-    /*for (CountT i = 0; i < consts::numRooms; i++) {
-        Room &room = level.rooms[i];
-        for (CountT j = 0; j < consts::maxEntitiesPerRoom; j++) {
-            if (room.entities[j] != Entity::none()) {
-                ctx.destroyRenderableEntity(room.entities[j]);
-            }
-        }
-
-        ctx.destroyRenderableEntity(room.walls[0]);
-        ctx.destroyRenderableEntity(room.walls[1]);
-        ctx.destroyRenderableEntity(room.door);
-    }*/
 }
 
 static inline void initWorld(Engine &ctx)
 {
-    //phys::RigidBodyPhysicsSystem::reset(ctx);
-
     // Assign a new episode ID
     ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
         ctx.data().curWorldEpisode++, (uint32_t)ctx.worldID().idx));
@@ -175,6 +160,8 @@ inline void movementSystem(Engine &ctx,
     newVelocity.y = walkVec.y;
     newVelocity.z = action.z - 1;
 
+    cam.yaw += 0.1f;
+
     cam.yaw += (action.rot-1)*consts::sensitivity;
     cam.yaw -= math::pi_m2 * std::floor((cam.yaw + math::pi) * (1. / math::pi_m2));
 
@@ -186,9 +173,8 @@ inline void movementSystem(Engine &ctx,
     ctx.get<Rotation>(cam.camera) = eulerToQuat(cam.yaw, cam.pitch);
     rot = eulerToQuat(cam.yaw, 0);
 
-    printf("Position: %f %f %f\n", pos.x, pos.y, pos.z);
-
-    //printf("%f,%f,%f\n",pos.x,pos.y,pos.z);
+    printf("Position: %f %f %f yaw=%f pitch=%f\n", pos.x, pos.y, pos.z,
+            cam.yaw, cam.pitch);
 }
 
 // Implements the grab action by casting a short ray in front of the agent
