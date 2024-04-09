@@ -122,7 +122,7 @@ struct Manager::Impl {
     virtual void run() = 0;
 
     virtual Tensor exportTensor(ExportID slot,
-        Tensor::ElementType type,
+        TensorElementType type,
         madrona::Span<const int64_t> dimensions) const = 0;
 
     static inline Impl * init(const Config &cfg);
@@ -156,7 +156,7 @@ struct Manager::CPUImpl final : Manager::Impl {
     }
 
     virtual inline Tensor exportTensor(ExportID slot,
-        Tensor::ElementType type,
+        TensorElementType type,
         madrona::Span<const int64_t> dims) const final
     {
         void *dev_ptr = cpuExec.getExported((uint32_t)slot);
@@ -167,6 +167,7 @@ struct Manager::CPUImpl final : Manager::Impl {
 #ifdef MADRONA_CUDA_SUPPORT
 struct Manager::CUDAImpl final : Manager::Impl {
     MWCudaExecutor gpuExec;
+    MWCudaLaunchGraph stepGraph;
 
     inline CUDAImpl(const Manager::Config &mgr_cfg,
                    PhysicsLoader &&phys_loader,
@@ -174,23 +175,25 @@ struct Manager::CUDAImpl final : Manager::Impl {
                    Action *action_buffer,
                    Optional<RenderGPUState> &&render_gpu_state,
                    Optional<render::RenderManager> &&render_mgr,
-                   MWCudaExecutor &&gpu_exec)
+                   MWCudaExecutor &&gpu_exec,
+                   MWCudaLaunchGraph &&step_graph)
         : Impl(mgr_cfg, std::move(phys_loader),
                reset_buffer, action_buffer,
                std::move(render_gpu_state), std::move(render_mgr),
                mgr_cfg.raycastOutputResolution),
-          gpuExec(std::move(gpu_exec))
+          gpuExec(std::move(gpu_exec)),
+          stepGraph(std::move(step_graph))
     {}
 
     inline virtual ~CUDAImpl() final {}
 
     inline virtual void run()
     {
-        gpuExec.run();
+        gpuExec.run(stepGraph);
     }
 
     virtual inline Tensor exportTensor(ExportID slot,
-        Tensor::ElementType type,
+        TensorElementType type,
         madrona::Span<const int64_t> dims) const final
     {
         void *dev_ptr = gpuExec.getExported((uint32_t)slot);
@@ -640,6 +643,7 @@ Manager::Impl * Manager::Impl::init(
             .numWorldDataBytes = sizeof(Sim),
             .worldDataAlignment = alignof(Sim),
             .numWorlds = mgr_cfg.numWorlds,
+            .numTaskGraphs = (uint32_t)TaskGraphID::NumTaskGraphs,
             .numExportedBuffers = (uint32_t)ExportID::NumExports, 
             .geometryData = &gpu_imported_assets,
             .raycastOutputResolution = mgr_cfg.raycastOutputResolution
@@ -648,6 +652,10 @@ Manager::Impl * Manager::Impl::init(
             { GPU_HIDESEEK_COMPILE_FLAGS },
             CompileConfig::OptMode::LTO,
         }, cu_ctx);
+
+        MWCudaLaunchGraph step_graph = gpu_exec.buildLaunchGraph(
+                TaskGraphID::Step, !mgr_cfg.enableBatchRenderer);
+
         printf("Combine postcompile\n");
         WorldReset *world_reset_buffer = 
             (WorldReset *)gpu_exec.getExported((uint32_t)ExportID::Reset);
@@ -663,6 +671,7 @@ Manager::Impl * Manager::Impl::init(
             std::move(render_gpu_state),
             std::move(render_mgr),
             std::move(gpu_exec),
+            std::move(step_graph)
         };
 #else
         FATAL("Madrona was not compiled with CUDA support");
@@ -811,7 +820,7 @@ void Manager::step()
 Tensor Manager::resetTensor() const
 {
     return impl_->exportTensor(ExportID::Reset,
-                               Tensor::ElementType::Int32,
+                               TensorElementType::Int32,
                                {
                                    impl_->cfg.numWorlds,
                                    1,
@@ -820,7 +829,7 @@ Tensor Manager::resetTensor() const
 
 Tensor Manager::actionTensor() const
 {
-    return impl_->exportTensor(ExportID::Action, Tensor::ElementType::Int32,
+    return impl_->exportTensor(ExportID::Action, TensorElementType::Int32,
         {
             impl_->cfg.numWorlds,
             consts::numAgents,
@@ -830,7 +839,7 @@ Tensor Manager::actionTensor() const
 
 Tensor Manager::rewardTensor() const
 {
-    return impl_->exportTensor(ExportID::Reward, Tensor::ElementType::Float32,
+    return impl_->exportTensor(ExportID::Reward, TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
                                    consts::numAgents,
@@ -840,7 +849,7 @@ Tensor Manager::rewardTensor() const
 
 Tensor Manager::doneTensor() const
 {
-    return impl_->exportTensor(ExportID::Done, Tensor::ElementType::Int32,
+    return impl_->exportTensor(ExportID::Done, TensorElementType::Int32,
                                {
                                    impl_->cfg.numWorlds,
                                    consts::numAgents,
@@ -851,7 +860,7 @@ Tensor Manager::doneTensor() const
 Tensor Manager::selfObservationTensor() const
 {
     return impl_->exportTensor(ExportID::SelfObservation,
-                               Tensor::ElementType::Float32,
+                               TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
                                    consts::numAgents,
@@ -862,7 +871,7 @@ Tensor Manager::selfObservationTensor() const
 Tensor Manager::partnerObservationsTensor() const
 {
     return impl_->exportTensor(ExportID::PartnerObservations,
-                               Tensor::ElementType::Float32,
+                               TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
                                    consts::numAgents,
@@ -874,7 +883,7 @@ Tensor Manager::partnerObservationsTensor() const
 Tensor Manager::roomEntityObservationsTensor() const
 {
     return impl_->exportTensor(ExportID::RoomEntityObservations,
-                               Tensor::ElementType::Float32,
+                               TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
                                    consts::numAgents,
@@ -886,7 +895,7 @@ Tensor Manager::roomEntityObservationsTensor() const
 Tensor Manager::doorObservationTensor() const
 {
     return impl_->exportTensor(ExportID::DoorObservation,
-                               Tensor::ElementType::Float32,
+                               TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
                                    consts::numAgents,
@@ -896,7 +905,7 @@ Tensor Manager::doorObservationTensor() const
 
 Tensor Manager::lidarTensor() const
 {
-    return impl_->exportTensor(ExportID::Lidar, Tensor::ElementType::Float32,
+    return impl_->exportTensor(ExportID::Lidar, TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
                                    consts::numAgents,
@@ -908,7 +917,7 @@ Tensor Manager::lidarTensor() const
 Tensor Manager::stepsRemainingTensor() const
 {
     return impl_->exportTensor(ExportID::StepsRemaining,
-                               Tensor::ElementType::Int32,
+                               TensorElementType::Int32,
                                {
                                    impl_->cfg.numWorlds,
                                    consts::numAgents,
@@ -920,7 +929,7 @@ Tensor Manager::rgbTensor() const
 {
     const uint8_t *rgb_ptr = impl_->renderMgr->batchRendererRGBOut();
 
-    return Tensor((void*)rgb_ptr, Tensor::ElementType::UInt8, {
+    return Tensor((void*)rgb_ptr, TensorElementType::UInt8, {
         impl_->cfg.numWorlds,
         consts::numAgents,
         impl_->cfg.batchRenderViewHeight,
@@ -933,7 +942,7 @@ Tensor Manager::depthTensor() const
 {
     const float *depth_ptr = impl_->renderMgr->batchRendererDepthOut();
 
-    return Tensor((void *)depth_ptr, Tensor::ElementType::Float32, {
+    return Tensor((void *)depth_ptr, TensorElementType::Float32, {
         impl_->cfg.numWorlds,
         consts::numAgents,
         impl_->cfg.batchRenderViewHeight,
@@ -947,7 +956,7 @@ Tensor Manager::raycastTensor() const
     uint32_t pixels_per_view = impl_->raycastOutputResolution *
         impl_->raycastOutputResolution;
     return impl_->exportTensor(ExportID::Raycast,
-                               Tensor::ElementType::UInt8,
+                               TensorElementType::UInt8,
                                {
                                    impl_->cfg.numWorlds*consts::numAgents,
                                    pixels_per_view * 3,

@@ -610,8 +610,8 @@ TaskGraph::NodeID queueSortByWorld(TaskGraph::Builder &builder,
 }
 #endif
 
-// Build the task graph
-void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
+static void setupStepTasks(TaskGraphBuilder &builder, 
+                           const Sim::Config &cfg)
 {
     // Turn policy actions into movement
     auto move_sys = builder.addToGraph<ParallelForNode<Engine,
@@ -681,6 +681,12 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &cfg)
 #else
     (void)collect_obs;
 #endif
+}
+
+// Build the task graph
+void Sim::setupTasks(TaskGraphManager &taskgraph_mgr, const Config &cfg)
+{
+    setupStepTasks(taskgraph_mgr.init(TaskGraphID::Step), cfg);
 }
 
 Sim::Sim(Engine &ctx,
