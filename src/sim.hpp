@@ -74,6 +74,8 @@ struct Sim : public madrona::WorldBase {
         uint32_t numObjects;
         uint32_t numImportedInstances;
         ImportedInstance *importedInstances;
+
+        madrona::math::Vector2 sceneCenter;
     };
 
     // This class would allow per-world custom data to be passed into
@@ -128,6 +130,10 @@ struct Sim : public madrona::WorldBase {
     uint32_t numImportedInstances;
 
     uint32_t numObjects;
+
+    float currentTime;
+
+    madrona::math::Vector2 worldCenter;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {

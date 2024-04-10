@@ -121,6 +121,8 @@ static inline void initWorld(Engine &ctx)
 // If a reset is needed, cleanup the existing world and generate a new one.
 inline void resetSystem(Engine &ctx, WorldReset &reset)
 {
+    ctx.data().currentTime += 0.1f;
+
     int32_t should_reset = reset.reset;
     if (ctx.data().autoReset) {
         for (CountT i = 0; i < consts::numAgents; i++) {
@@ -143,6 +145,7 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
 // Translates discrete actions from the Action component to forces
 // used by the physics simulation.
 inline void movementSystem(Engine &ctx,
+                           Entity e,
                            Action &action, 
                            Rotation &rot,
                            Position &pos,
@@ -160,7 +163,9 @@ inline void movementSystem(Engine &ctx,
     newVelocity.y = walkVec.y;
     newVelocity.z = action.z - 1;
 
-    cam.yaw += 0.1f;
+#if 1
+    cam.yaw += 0.15f;
+#endif
 
     cam.yaw += (action.rot-1)*consts::sensitivity;
     cam.yaw -= math::pi_m2 * std::floor((cam.yaw + math::pi) * (1. / math::pi_m2));
@@ -169,12 +174,23 @@ inline void movementSystem(Engine &ctx,
     cam.pitch = std::clamp(cam.pitch,-math::pi_d2,math::pi_d2);
     pos += newVelocity;
 
+    float entity_offset = (float)e.id;
+
+#if 1
+    pos = Vector3{ 20.f*std::cosf(ctx.data().currentTime + entity_offset), 
+        20.f*std::sinf(ctx.data().currentTime + entity_offset), 22.f };
+    pos.x += ctx.data().worldCenter.x;
+    pos.y += ctx.data().worldCenter.y;
+#endif
+
     ctx.get<Position>(cam.camera) = Vector3{ pos.x,pos.y,pos.z};
     ctx.get<Rotation>(cam.camera) = eulerToQuat(cam.yaw, cam.pitch);
     rot = eulerToQuat(cam.yaw, 0);
 
+#if 1
     printf("Position: %f %f %f yaw=%f pitch=%f\n", pos.x, pos.y, pos.z,
             cam.yaw, cam.pitch);
+#endif
 }
 
 // Implements the grab action by casting a short ray in front of the agent
@@ -602,6 +618,7 @@ static void setupStepTasks(TaskGraphBuilder &builder,
     // Turn policy actions into movement
     auto move_sys = builder.addToGraph<ParallelForNode<Engine,
         movementSystem,
+            Entity,
             Action,
             Rotation,
             Position,
@@ -749,6 +766,10 @@ Sim::Sim(Engine &ctx,
 
     // Generate initial world state
     initWorld(ctx);
+
+    currentTime = 0.f;
+
+    worldCenter = cfg.sceneCenter;
 }
 
 // This declaration is needed for the GPU backend in order to generate the

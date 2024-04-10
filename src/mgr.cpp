@@ -202,11 +202,12 @@ struct Manager::CUDAImpl final : Manager::Impl {
 };
 #endif
 
-#define LOAD_ENV 0
+// #define LOAD_ENV 2
 
 static imp::ImportedAssets loadRenderObjects(
         Optional<render::RenderManager> &render_mgr,
-        std::vector<ImportedInstance> &imported_instances)
+        std::vector<ImportedInstance> &imported_instances,
+        math::Vector2 *scene_center)
 {
     //(void)bvh;
     std::vector<render::MeshBVH::Node> nodes;
@@ -215,17 +216,26 @@ static imp::ImportedAssets loadRenderObjects(
     std::vector<Vector3> vertices;
     std::vector<render::MeshBVH> bvhs;
 
-#if LOAD_ENV == 0
-    // Get the render objects needed from the habitat JSON
-    std::string scene_path = std::filesystem::path(DATA_DIR) /
-        "hssd-hab/scenes-uncluttered/108736656_177263304.scene_instance.json";
-#elif LOAD_ENV == 1
-    std::string scene_path = std::filesystem::path(DATA_DIR) /
-        "hssd-hab/scenes-uncluttered/105515286_173104287.scene_instance.json";
-#elif LOAD_ENV == 2
-    std::string scene_path = std::filesystem::path(DATA_DIR) /
-        "hssd-hab/scenes-uncluttered/107734254_176000121.scene_instance.json";
-#endif
+    const char *loaded_env = getenv("MADRONA_LOADED_ENV");
+
+    assert(loaded_env != nullptr);
+
+    std::string scene_path;
+
+    if (loaded_env[0] == '0') {
+        *scene_center = { -59.872063, 36.738739 };
+        // Get the render objects needed from the habitat JSON
+        scene_path = std::filesystem::path(DATA_DIR) /
+            "hssd-hab/scenes-uncluttered/108736656_177263304.scene_instance.json";
+    } else if (loaded_env[0] == '1') {
+        *scene_center = { -8.241938, 36.422760 };
+        scene_path = std::filesystem::path(DATA_DIR) /
+            "hssd-hab/scenes-uncluttered/105515286_173104287.scene_instance.json";
+    } else if (loaded_env[0] == '2') {
+        *scene_center = { -17.695925, 5.110266 };
+        scene_path = std::filesystem::path(DATA_DIR) /
+            "hssd-hab/scenes-uncluttered/107734254_176000121.scene_instance.json";
+    }
 
     auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
 
@@ -596,8 +606,9 @@ Manager::Impl * Manager::Impl::init(
         imp::ImportedAssets::GPUGeometryData gpu_imported_assets;
         std::vector<ImportedInstance> imported_instances;
 
+        math::Vector2 scene_center;
         auto imported_assets = loadRenderObjects(
-                render_mgr, imported_instances);
+                render_mgr, imported_instances, &scene_center);
 
         auto gpu_imported_assets_opt =
             imp::ImportedAssets::makeGPUData(imported_assets);
@@ -610,6 +621,8 @@ Manager::Impl * Manager::Impl::init(
                 sizeof(ImportedInstance) * imported_instances.size());
         sim_cfg.numImportedInstances = imported_instances.size();
         sim_cfg.numObjects = gpu_imported_assets.numBVHs;
+
+        sim_cfg.sceneCenter = scene_center;
 
         REQ_CUDA(cudaMemcpy(sim_cfg.importedInstances, imported_instances.data(),
                             sizeof(ImportedInstance) * imported_instances.size(),
