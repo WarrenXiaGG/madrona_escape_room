@@ -72,6 +72,16 @@ void createPersistentEntities(Engine &ctx)
             (int)ctx.data().numImportedInstances);
 
 #if defined(FLOORPLANNER)
+#ifdef MERGE_ALL
+    Entity e_inst = ctx.makeEntity<DummyRenderable>();
+    ctx.get<Position>(e_inst) = Vector3{0,0,0};
+    ctx.get<Rotation>(e_inst) = Quat{1,0,0,0};
+    ctx.get<Scale>(e_inst) = Diag3x3{1,1,1};
+    //ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects+67;//ctx.data().numObjects-8;
+    ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects;
+    printf("onum: %d\n",ctx.data().numObjects);
+    render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+#else
     for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
         ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
 
@@ -85,6 +95,7 @@ void createPersistentEntities(Engine &ctx)
             render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
         }
     }
+#endif
 #endif
 #endif
 

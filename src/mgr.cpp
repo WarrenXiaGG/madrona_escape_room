@@ -86,7 +86,7 @@ static inline Optional<render::RenderManager> initRenderManager(
         .agentViewHeight = mgr_cfg.batchRenderViewHeight,
         .numWorlds = mgr_cfg.numWorlds,
         .maxViewsPerWorld = consts::numAgents,
-        .maxInstancesPerWorld = 1024,
+        .maxInstancesPerWorld = 500,
         .execMode = mgr_cfg.execMode,
         .voxelCfg = {},
     });
@@ -358,7 +358,7 @@ static imp::ImportedAssets loadRenderObjects(
 
     // std::array<const char *, (size_t)SimObjectDefault::NumObjects> render_asset_cstrs;
     std::vector<const char *> render_asset_cstrs;
-    for (size_t i = 0; i < render_asset_paths.size() - 6; i++) {
+    for (size_t i = 0; i < render_asset_paths.size()-6; i++) {
         render_asset_cstrs.push_back(render_asset_paths[i].c_str());
     }
 
@@ -398,6 +398,108 @@ static imp::ImportedAssets loadRenderObjects(
             i++) {
         render_assets->objects[(CountT) SimObjectDefault::Dust2].meshes[i].materialIDX = 0;
     }
+
+    /*for (int obj_i = (int)SimObjectDefault::NumObjects;
+            obj_i < render_assets->objects.size(); ++obj_i) {
+        auto *obj_data = &render_assets->objects[obj_i];
+        obj_data->meshes[0]->
+        for (int mesh_i = 0; mesh_i < obj_data->meshes.size(); ++mesh_i) {
+            obj_data->meshes[mesh_i].materialIDX = habitat_material;
+        }
+    }*/
+#ifdef MERGE_ALL
+    //Count up total memory requirements
+    size_t vertex_size = 0;
+    size_t indices_size = 0;
+
+    printf("Render asset size %d\n",render_assets->objects.size());
+    for(auto& inst : imported_instances){
+        if(inst.objectID >= render_assets->objects.size())
+            continue;
+        auto& render_asset = render_assets->objects[inst.objectID];
+        for (int mesh_i = 0; mesh_i < render_asset.meshes.size(); ++mesh_i) {
+            vertex_size += render_asset.meshes[mesh_i].numVertices;
+            indices_size += render_asset.meshes[mesh_i].numFaces * 3;
+        }
+    }
+
+    fprintf(stderr,"Pre alloc %lu,%lu\n",indices_size,vertex_size);
+    DynArray<madrona::imp::SourceMesh> dummy_vector(1);
+    DynArray<Vector3> positions(vertex_size);
+    DynArray<Vector3> normals(vertex_size);
+    DynArray<Vector4> tangentsSigns(vertex_size);
+    DynArray<Vector2> uvs(vertex_size);
+    DynArray<uint32_t> indices(indices_size);
+
+    uint32_t v_index = 0;
+    uint32_t i_index = 0;
+    for(ImportedInstance& inst : imported_instances) {
+        if(inst.objectID >= render_assets->objects.size())
+            continue;
+        auto& render_asset = render_assets->objects[inst.objectID];
+        for (int mesh_i = 0; mesh_i < render_asset.meshes.size(); ++mesh_i) {
+            madrona::imp::SourceMesh& mesh = render_asset.meshes[mesh_i];
+
+            for(size_t i = 0; i < mesh.numFaces; i++){
+                indices.push_back(mesh.indices[i*3] + v_index);
+                indices.push_back(mesh.indices[i*3 + 1] + v_index);
+                indices.push_back(mesh.indices[i*3 + 2] + v_index);
+                i_index += 3;
+            }
+
+            for(size_t i = 0; i < mesh.numVertices; i++){
+                positions.push_back(inst.rotation.rotateVec(inst.scale * mesh.positions[i]) + inst.position);
+                normals.push_back(inst.rotation.rotateVec((inst.scale * mesh.normals[i]).normalize()).normalize());
+                if(mesh.tangentAndSigns) {
+                    tangentsSigns.push_back(mesh.tangentAndSigns[i]);
+                }
+                if(mesh.uvs) {
+                    uvs.push_back(mesh.uvs[i]);
+                }else{
+                    uvs.push_back(Vector2{0,0});
+                }
+
+                v_index++;
+            }
+        }
+    }
+    printf("Done with merge\n");
+
+    madrona::imp::SourceMesh merged_mesh{
+        .positions = positions.data(),
+        .normals = normals.data(),
+        .tangentAndSigns = nullptr,
+        .uvs = uvs.data(),
+        .indices = indices.data(),
+        .faceCounts = nullptr,
+        .faceMaterials = nullptr,
+        .numVertices = (uint32_t)vertex_size,
+        .numFaces = (uint32_t)indices_size / 3,
+        .materialIDX = habitat_material,
+    };
+
+    dummy_vector.push_back(merged_mesh);
+
+    madrona::imp::SourceObject object{
+        madrona::Span<madrona::imp::SourceMesh>(dummy_vector.data(),1)
+    };
+    printf("Pre remove objects %p,%p,%p,%p,%p,%p\n",positions.data(),normals.data(),tangentsSigns.data(),indices.data(),
+           uvs.data(),dummy_vector.data());
+    //Remove the unmerged originals
+    for (int obj_i = (int)SimObjectDefault::NumObjects; obj_i < render_asset_paths.size()-6; ++obj_i) {  //Use this for env 0 and 1
+    //for (int obj_i = (int)SimObjectDefault::NumObjects; obj_i < render_asset_paths.size()-9; ++obj_i) {  //Use this for env 2
+        render_assets->objects.pop_back();
+    }
+    printf("Past remove objects %d\n",uvs.size());
+    render_assets->objects.push_back(object);
+    render_assets->geoData.positionArrays.emplace_back(std::move(positions));
+    render_assets->geoData.normalArrays.emplace_back(std::move(normals));
+    render_assets->geoData.uvArrays.emplace_back(std::move(uvs));
+    //render_assets->geoData.tangentAndSignArrays.emplace_back(std::move(tangentsSigns));
+    render_assets->geoData.indexArrays.emplace_back(std::move(indices));
+    render_assets->geoData.meshArrays.emplace_back(std::move(dummy_vector));
+
+#endif
 
     for (int obj_i = (int)SimObjectDefault::NumObjects;
             obj_i < render_assets->objects.size(); ++obj_i) {
@@ -664,7 +766,7 @@ Manager::Impl * Manager::Impl::init(
 
         Action *agent_actions_buffer = 
             (Action *)gpu_exec.getExported((uint32_t)ExportID::Action);
-
+        fprintf(stderr,"About to exit\n");
         return new CUDAImpl {
             mgr_cfg,
             std::move(phys_loader),

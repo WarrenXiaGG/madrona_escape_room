@@ -9,6 +9,11 @@ namespace HabitatJSON {
 
 using namespace std;
 
+std::string convertPath(std::string path){
+    int index = path.find("hssd-hab");
+    return path.substr(index);
+}
+
 Scene habitatJSONLoad(std::string_view scene_path_name)
 {
     using namespace filesystem;

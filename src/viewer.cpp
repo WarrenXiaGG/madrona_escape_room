@@ -75,7 +75,8 @@ int main(int argc, char *argv[])
         render_mode[0] == '1';
 #endif
 
-    WindowManager wm {};
+    WindowManager wm {WindowManager::Config{.enableRenderAPIValidation=true,.renderBackendSelect =
+            render::APIBackendSelect::Auto}};
     WindowHandle window = wm.makeWindow("Escape Room", 1000, 800);
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
