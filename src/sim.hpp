@@ -1,5 +1,7 @@
 #pragma once
 
+#define MERGE_ALL
+
 #include <madrona/taskgraph_builder.hpp>
 #include <madrona/custom_context.hpp>
 #include <madrona/rand.hpp>

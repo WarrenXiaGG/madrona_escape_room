@@ -486,7 +486,10 @@ static imp::ImportedAssets loadRenderObjects(
     printf("Pre remove objects %p,%p,%p,%p,%p,%p\n",positions.data(),normals.data(),tangentsSigns.data(),indices.data(),
            uvs.data(),dummy_vector.data());
     //Remove the unmerged originals
-    for (int obj_i = (int)SimObjectDefault::NumObjects; obj_i < render_asset_paths.size()-6; ++obj_i) {  //Use this for env 0 and 1
+
+    uint32_t sub = (loaded_env[0] == '2') ? 9 : 6;
+
+    for (int obj_i = (int)SimObjectDefault::NumObjects; obj_i < render_asset_paths.size()-sub; ++obj_i) {  //Use this for env 0 and 1
     //for (int obj_i = (int)SimObjectDefault::NumObjects; obj_i < render_asset_paths.size()-9; ++obj_i) {  //Use this for env 2
         render_assets->objects.pop_back();
     }
