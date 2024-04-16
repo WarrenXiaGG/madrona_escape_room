@@ -142,6 +142,8 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
     }
 }
 
+//#define DYNAMIC_MOVEMENT
+
 // Translates discrete actions from the Action component to forces
 // used by the physics simulation.
 inline void movementSystem(Engine &ctx,
@@ -163,7 +165,7 @@ inline void movementSystem(Engine &ctx,
     newVelocity.y = walkVec.y;
     newVelocity.z = action.z - 1;
 
-#if 1
+#if defined(DYNAMIC_MOVEMENT)
     cam.yaw += 0.15f;
 #endif
 
@@ -176,7 +178,7 @@ inline void movementSystem(Engine &ctx,
 
     float entity_offset = (float)e.id;
 
-#if 1
+#if defined(DYNAMIC_MOVEMENT)
     pos = Vector3{ 20.f*std::cosf(ctx.data().currentTime + entity_offset), 
         20.f*std::sinf(ctx.data().currentTime + entity_offset), 22.f };
     pos.x += ctx.data().worldCenter.x;

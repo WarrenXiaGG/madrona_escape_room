@@ -720,6 +720,13 @@ Manager::Impl * Manager::Impl::init(
 
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
 
+        uint32_t raycast_output_resolution = mgr_cfg.raycastOutputResolution;
+
+        // If the rasterizer is enabled, disable the raycaster
+        if (mgr_cfg.enableBatchRenderer) {
+            raycast_output_resolution = 0;
+        }
+
         printf("Combine compile:\n");
         MWCudaExecutor gpu_exec({
             .worldInitPtr = world_inits.data(),
@@ -732,7 +739,7 @@ Manager::Impl * Manager::Impl::init(
             .numTaskGraphs = (uint32_t)TaskGraphID::NumTaskGraphs,
             .numExportedBuffers = (uint32_t)ExportID::NumExports, 
             .geometryData = &gpu_imported_assets,
-            .raycastOutputResolution = mgr_cfg.raycastOutputResolution
+            .raycastOutputResolution = raycast_output_resolution,
         }, {
             { GPU_HIDESEEK_SRC_LIST },
             { GPU_HIDESEEK_COMPILE_FLAGS },
