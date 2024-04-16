@@ -1,6 +1,6 @@
 #pragma once
 
-#define MERGE_ALL
+// #define MERGE_ALL
 
 #include <madrona/taskgraph_builder.hpp>
 #include <madrona/custom_context.hpp>
@@ -78,6 +78,8 @@ struct Sim : public madrona::WorldBase {
         ImportedInstance *importedInstances;
 
         madrona::math::Vector2 sceneCenter;
+
+        bool mergeAll;
     };
 
     // This class would allow per-world custom data to be passed into
@@ -136,6 +138,8 @@ struct Sim : public madrona::WorldBase {
     float currentTime;
 
     madrona::math::Vector2 worldCenter;
+
+    bool mergeAll;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {

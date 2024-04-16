@@ -703,6 +703,8 @@ Sim::Sim(Engine &ctx,
     constexpr CountT max_total_entities = consts::numAgents +
         consts::numRooms * (consts::maxEntitiesPerRoom + 3) +
         4; // side walls + floor
+
+    mergeAll = cfg.mergeAll;
     
     importedInstances = cfg.importedInstances;
     numImportedInstances = cfg.numImportedInstances;

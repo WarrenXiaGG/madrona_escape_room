@@ -78,8 +78,10 @@ int main(int argc, char *argv[])
     //WindowManager wm {WindowManager::Config{.enableRenderAPIValidation=true,.renderBackendSelect =
     //        render::APIBackendSelect::Auto}};
     WindowManager wm {};
-    WindowHandle window = wm.makeWindow("Escape Room", 1000, 800);
+    WindowHandle window = wm.makeWindow("Escape Room", 1920, 1080);
+    printf("Here\n");
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
+
 
     printf("premanage: \n");
 
@@ -123,7 +125,7 @@ int main(int argc, char *argv[])
     // Create the viewer viewer
     viz::Viewer viewer(mgr.getRenderManager(), window.get(), {
         .numWorlds = num_worlds,
-        .simTickRate = 20,
+        .simTickRate = 120,
         .cameraMoveSpeed = camera_move_speed,
         .cameraPosition = initial_camera_position,
         .cameraRotation = initial_camera_rotation,

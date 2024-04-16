@@ -72,30 +72,30 @@ void createPersistentEntities(Engine &ctx)
             (int)ctx.data().numImportedInstances);
 
 #if defined(FLOORPLANNER)
-#ifdef MERGE_ALL
-    Entity e_inst = ctx.makeEntity<DummyRenderable>();
-    ctx.get<Position>(e_inst) = Vector3{0,0,0};
-    ctx.get<Rotation>(e_inst) = Quat{1,0,0,0};
-    ctx.get<Scale>(e_inst) = Diag3x3{1,1,1};
-    //ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects+67;//ctx.data().numObjects-8;
-    ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects;
-    printf("onum: %d\n",ctx.data().numObjects);
-    render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
-#else
-    for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
-        ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
+    if (ctx.data().mergeAll) {
+        Entity e_inst = ctx.makeEntity<DummyRenderable>();
+        ctx.get<Position>(e_inst) = Vector3{0,0,0};
+        ctx.get<Rotation>(e_inst) = Quat{1,0,0,0};
+        ctx.get<Scale>(e_inst) = Diag3x3{1,1,1};
+        //ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects+67;//ctx.data().numObjects-8;
+        ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects;
+        printf("onum: %d\n",ctx.data().numObjects);
+        render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+    } else {
+        for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
+            ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
 
-        if (imp_inst->objectID < ctx.data().numObjects - 6) {
-            Entity e_inst = ctx.makeEntity<DummyRenderable>();
-            ctx.get<Position>(e_inst) = imp_inst->position;
-            ctx.get<Rotation>(e_inst) = imp_inst->rotation;
-            ctx.get<Scale>(e_inst) = imp_inst->scale;
-            ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
+            if (imp_inst->objectID < ctx.data().numObjects - 6) {
+                Entity e_inst = ctx.makeEntity<DummyRenderable>();
+                ctx.get<Position>(e_inst) = imp_inst->position;
+                ctx.get<Rotation>(e_inst) = imp_inst->rotation;
+                ctx.get<Scale>(e_inst) = imp_inst->scale;
+                ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
 
-            render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+                render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+            }
         }
     }
-#endif
 #endif
 #endif
 
