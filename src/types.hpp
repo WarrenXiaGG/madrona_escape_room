@@ -81,13 +81,13 @@ namespace madEscape {
 
 // Egocentric observations of other agents
     struct PartnerObservations {
-        PartnerObservation obs[consts::numAgents - 1];
+        PartnerObservation obs[consts::numAgents];
     };
 
 // PartnerObservations is exported as a
 // [N, A, consts::numAgents - 1, 3] // tensor to pytorch
     static_assert(sizeof(PartnerObservations) == sizeof(float) *
-                                                 (consts::numAgents - 1) * 3);
+                                                 (consts::numAgents) * 3);
 
 // Per-agent egocentric observations for the interactable entities
 // in the current room.
@@ -150,7 +150,7 @@ namespace madEscape {
 // Per-agent component storing Entity IDs of the other agents. Used to
 // build the egocentric observations of their state.
     struct OtherAgents {
-        madrona::Entity e[consts::numAgents - 1];
+        madrona::Entity e[consts::numAgents];
     };
 
 // Tracks if an agent is currently grabbing another entity

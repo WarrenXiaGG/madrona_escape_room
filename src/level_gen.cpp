@@ -73,14 +73,18 @@ void createPersistentEntities(Engine &ctx)
 
 #if defined(FLOORPLANNER)
     if (ctx.data().mergeAll) {
-        Entity e_inst = ctx.makeEntity<DummyRenderable>();
-        ctx.get<Position>(e_inst) = Vector3{0,0,0};
-        ctx.get<Rotation>(e_inst) = Quat{1,0,0,0};
-        ctx.get<Scale>(e_inst) = Diag3x3{1,1,1};
-        //ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects+67;//ctx.data().numObjects-8;
-        ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects;
-        printf("onum: %d\n",ctx.data().numObjects);
-        render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+
+        for (int i = 0; i < 512; ++i) {
+            Entity e_inst = ctx.makeEntity<DummyRenderable>();
+            ctx.get<Position>(e_inst) = Vector3{(float)i * 100.f,0,0};
+            ctx.get<Rotation>(e_inst) = Quat{1,0,0,0};
+            ctx.get<Scale>(e_inst) = Diag3x3{1,1,1};
+            //ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects+67;//ctx.data().numObjects-8;
+            ctx.get<ObjectID>(e_inst).idx = (int)SimObjectDefault::NumObjects;
+            printf("onum: %d\n",ctx.data().numObjects);
+            render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
+        }
+
     } else {
         for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
             ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
@@ -199,6 +203,10 @@ void createPersistentEntities(Engine &ctx)
      float yaws[2] = {
          1.141593f, -2.641593
      };
+
+     if (ctx.data().mergeAll) {
+        yaws[0] = -0.858407f;
+     }
 
     // Create agent entities. Note that this leaves a lot of components
     // uninitialized, these will be set during world generation, which is

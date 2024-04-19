@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     //WindowManager wm {WindowManager::Config{.enableRenderAPIValidation=true,.renderBackendSelect =
     //        render::APIBackendSelect::Auto}};
     WindowManager wm {};
-    WindowHandle window = wm.makeWindow("Escape Room", 1920, 1080);
+    WindowHandle window = wm.makeWindow("Escape Room", 1408, 1408);
     printf("Here\n");
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
@@ -99,6 +99,12 @@ int main(int argc, char *argv[])
         raycast_output_resolution *= 8;
     }
 
+    auto *trace_test = getenv("MADRONA_TRACE_TEST");
+    if (trace_test[0] == '1') {
+        raycast_output_resolution = 1408;
+        printf("I set the resolution!!!\n");
+    }
+
     // Create the simulation manager
     Manager mgr({
         .execMode = exec_mode,
@@ -107,6 +113,8 @@ int main(int argc, char *argv[])
         .randSeed = 5,
         .autoReset = replay_log.has_value(),
         .enableBatchRenderer = enable_batch_renderer,
+        .batchRenderViewWidth = raycast_output_resolution,
+        .batchRenderViewHeight = raycast_output_resolution,
         .extRenderAPI = wm.gpuAPIManager().backend(),
         .extRenderDev = render_gpu.device(),
         .raycastOutputResolution = raycast_output_resolution,
@@ -162,6 +170,7 @@ int main(int argc, char *argv[])
     };
 
     // Printers
+#if 0
     auto self_printer = mgr.selfObservationTensor().makePrinter();
     auto partner_printer = mgr.partnerObservationsTensor().makePrinter();
     auto room_ent_printer = mgr.roomEntityObservationsTensor().makePrinter();
@@ -169,6 +178,7 @@ int main(int argc, char *argv[])
     auto lidar_printer = mgr.lidarTensor().makePrinter();
     auto steps_remaining_printer = mgr.stepsRemainingTensor().makePrinter();
     auto reward_printer = mgr.rewardTensor().makePrinter();
+#endif
 
     auto printObs = [&]() {
         /*printf("Self\n");

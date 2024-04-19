@@ -338,6 +338,10 @@ static imp::ImportedAssets loadRenderObjects(
         printf("Loaded %d render objects\n", (int)loaded_gltfs.size());
     }
 
+    for (size_t i = 0; i < render_asset_paths.size(); ++i) {
+        printf("%s\n", render_asset_paths[i].c_str());
+    }
+
     // std::array<const char *, (size_t)SimObjectDefault::NumObjects> render_asset_cstrs;
     std::vector<const char *> render_asset_cstrs;
     for (size_t i = 0; i < render_asset_paths.size()-6; i++) {
