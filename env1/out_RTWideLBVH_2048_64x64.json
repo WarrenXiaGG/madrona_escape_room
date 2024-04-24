@@ -1,6 +1,6 @@
 {
   "num_worlds":2048,
   "num_vertices":1715570,
-  "avg_total_time":62.531250,
-  "avg_trace_time_ratio":0.953869
+  "avg_total_time":82.913635,
+  "avg_trace_time_ratio":0.994631
 }

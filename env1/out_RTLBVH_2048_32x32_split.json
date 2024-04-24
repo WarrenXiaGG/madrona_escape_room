@@ -1,7 +1,7 @@
 {
   "num_worlds":32,
   "num_vertices":1715570,
-  "avg_total_time":56.744343,
-  "tlas_percent":0.588681,
-  "avg_trace_time_ratio":0.993764
+  "avg_total_time":56.791100,
+  "tlas_percent":0.895529,
+  "avg_trace_time_ratio":0.998222
 }
