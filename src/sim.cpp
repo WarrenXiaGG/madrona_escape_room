@@ -148,7 +148,7 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
     }
 }
 
-//#define DYNAMIC_MOVEMENT
+#define DYNAMIC_MOVEMENT
 
 // Translates discrete actions from the Action component to forces
 // used by the physics simulation.
@@ -718,17 +718,7 @@ Sim::Sim(Engine &ctx,
     uint32_t num_worlds_per_scene = cfg.numWorlds / cfg.numUniqueScenes;
     uint32_t current_scene = current_world_id / num_worlds_per_scene;
 
-    LOG("current_world_id={}, num_worlds={}, num_scenes={}\n",
-            current_world_id, cfg.numWorlds, cfg.numUniqueScenes);
-
     UniqueScene *unique_scene = &cfg.uniqueScenes[current_scene];
-
-    LOG("num_scenes={}, scene_idx={}, unique_scene={}, imported_instances={}, instance_offset={}\n", 
-            cfg.numUniqueScenes,
-            current_scene,
-            unique_scene,
-            cfg.importedInstances,
-            unique_scene->instancesOffset);
 
     importedInstances = cfg.importedInstances + 
         unique_scene->instancesOffset;

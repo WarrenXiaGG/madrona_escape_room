@@ -63,6 +63,10 @@ static inline Optional<render::RenderManager> initRenderManager(
     const Manager::Config &mgr_cfg,
     const Optional<RenderGPUState> &render_gpu_state)
 {
+    if (mgr_cfg.headlessMode && !mgr_cfg.enableBatchRenderer) {
+        return Optional<render::RenderManager>::none();
+    }
+
 #if defined(MADRONA_VIEWER)
     if (!mgr_cfg.extRenderDev && !mgr_cfg.enableBatchRenderer) {
         return Optional<render::RenderManager>::none();
@@ -277,6 +281,8 @@ static imp::ImportedAssets loadScenes(
         std::unordered_map<std::string, uint32_t> loaded_gltfs;
         std::unordered_map<uint32_t, uint32_t> object_to_imported_instance;
 
+        uint32_t num_center_contribs = 0;
+
         for (const HabitatJSON::AdditionalInstance &inst :
                 loaded_scene.additionalInstances) {
             auto path_view = inst.gltfPath.string();
@@ -310,6 +316,10 @@ static imp::ImportedAssets loadScenes(
                     .objectID = (int32_t)render_asset_paths.size(),
                 };
 
+                unique_scene_info.center += math::Vector3{
+                    new_inst.position.x, new_inst.position.y, 0.f };
+                num_center_contribs++;
+
                 load_result.importedInstances.push_back(new_inst);
                 render_asset_paths.push_back(inst.gltfPath.string());
             } else {
@@ -333,11 +343,16 @@ static imp::ImportedAssets loadScenes(
                     .objectID = (int32_t)iter->second,
                 };
 
+                unique_scene_info.center += math::Vector3{
+                    new_inst.position.x, new_inst.position.y, 0.f };
+                num_center_contribs++;
+
                 load_result.importedInstances.push_back(new_inst);
             }
 
             unique_scene_info.numInstances =
                 load_result.importedInstances.size() - unique_scene_info.instancesOffset;
+            unique_scene_info.center = unique_scene_info.center / (float)num_center_contribs;
         }
 
         load_result.uniqueSceneInfos.push_back(unique_scene_info);
@@ -391,6 +406,8 @@ static imp::ImportedAssets loadScenes(
     }
 
     if (render_mgr.has_value()) {
+        printf("Rasterizer is loading assets\n");
+
         render_mgr->loadObjects(render_assets->objects, materials, {
             { (std::filesystem::path(DATA_DIR) /
                "green_grid.png").string().c_str() },
