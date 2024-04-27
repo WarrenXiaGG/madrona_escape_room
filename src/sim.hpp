@@ -60,6 +60,13 @@ enum class TaskGraphID : uint32_t {
 // This is used for generic rendering objects
 using SimObject = uint32_t;
 
+struct UniqueScene {
+    uint32_t numInstances;
+    uint32_t instancesOffset;
+    uint32_t numObjects;
+    madrona::math::Vector3 center;
+};
+
 // The Sim class encapsulates the per-world state of the simulation.
 // Sim is always available by calling ctx.data() given a reference
 // to the Engine / Context object that is passed to each ECS system.
@@ -78,6 +85,11 @@ struct Sim : public madrona::WorldBase {
         ImportedInstance *importedInstances;
 
         madrona::math::Vector2 sceneCenter;
+
+        uint32_t numUniqueScenes;
+        UniqueScene *uniqueScenes;
+
+        uint32_t numWorlds;
 
         bool mergeAll;
     };

@@ -4,6 +4,12 @@
 #include "sim.hpp"
 #include "level_gen.hpp"
 //#include "madrona/mesh_bvh2.hpp"
+#ifdef MADRONA_GPU_MODE
+#include <madrona/mw_gpu/host_print.hpp>
+#define LOG(...) mwGPU::HostPrint::log(__VA_ARGS__)
+#else
+#define LOG(...)
+#endif
 
 using namespace madrona;
 using namespace madrona::math;
@@ -707,16 +713,28 @@ Sim::Sim(Engine &ctx,
         4; // side walls + floor
 
     mergeAll = cfg.mergeAll;
-    
-    importedInstances = cfg.importedInstances;
-    numImportedInstances = cfg.numImportedInstances;
-    numObjects = cfg.numObjects;
 
-    /*phys::RigidBodyPhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
-        consts::deltaT, consts::numPhysicsSubsteps, -9.8f * math::up,
-        max_total_entities, max_total_entities * max_total_entities / 2,
-        consts::numAgents);
-    */
+    uint32_t current_world_id = ctx.worldID().idx;
+    uint32_t num_worlds_per_scene = cfg.numWorlds / cfg.numUniqueScenes;
+    uint32_t current_scene = current_world_id / num_worlds_per_scene;
+
+    LOG("current_world_id={}, num_worlds={}, num_scenes={}\n",
+            current_world_id, cfg.numWorlds, cfg.numUniqueScenes);
+
+    UniqueScene *unique_scene = &cfg.uniqueScenes[current_scene];
+
+    LOG("num_scenes={}, scene_idx={}, unique_scene={}, imported_instances={}, instance_offset={}\n", 
+            cfg.numUniqueScenes,
+            current_scene,
+            unique_scene,
+            cfg.importedInstances,
+            unique_scene->instancesOffset);
+
+    importedInstances = cfg.importedInstances + 
+        unique_scene->instancesOffset;
+
+    numImportedInstances = unique_scene->numInstances;
+    
     initRandKey = cfg.initRandKey;
     autoReset = cfg.autoReset;
 
@@ -728,42 +746,6 @@ Sim::Sim(Engine &ctx,
     }
 
     curWorldEpisode = 0;
-
-#if 0
-    phys::MeshBVH *mesh_bvhs = (phys::MeshBVH *)cfg.bvhs;
-    for (int bvh_idx = 0; bvh_idx < 10; ++bvh_idx) {
-        phys::MeshBVH *current_bvh = &mesh_bvhs[bvh_idx];
-
-        printf("############ PRINTING FOR BVH %d (%p) ###############\n", 
-               bvh_idx,
-               current_bvh);
-
-        printf("Node info:\n");
-        for (int node_idx = 0; node_idx < current_bvh->numNodes; ++node_idx) {
-            phys::MeshBVH::Node *current_node = &current_bvh->nodes[node_idx];
-
-            printf("\t(%p) Parent at %d\n", current_node, current_node->parentID);
-        }
-
-        printf("Triangle info:\n");
-        for (int geo_idx = 0; geo_idx < std::min(current_bvh->numLeaves, 30u); ++geo_idx) {
-            phys::MeshBVH::LeafGeometry *current_geo = &current_bvh->leafGeos[geo_idx];
-            printf("\t(%p) Triangel indices: %u %u %u\n",
-                    current_geo,
-                    current_geo->packedIndices[0].indices[0],
-                    current_geo->packedIndices[0].indices[1],
-                    current_geo->packedIndices[0].indices[2]);
-        }
-
-        printf("Vertex info:\n");
-        for (int vert_idx = 0; vert_idx < std::min(current_bvh->numVerts, 30u); ++vert_idx) {
-            math::Vector3 *current_vtx = &current_bvh->vertices[vert_idx];
-            printf("\t(%p) %f %f %f\n",
-                    current_vtx,
-                    current_vtx->x, current_vtx->y, current_vtx->z);
-        }
-    }
-#endif
 
     // Creates agents, walls, etc.
     createPersistentEntities(ctx);

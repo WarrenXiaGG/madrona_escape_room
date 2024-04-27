@@ -89,15 +89,13 @@ void createPersistentEntities(Engine &ctx)
         for (int i = 0; i < (int)ctx.data().numImportedInstances; ++i) {
             ImportedInstance *imp_inst = &ctx.data().importedInstances[i];
 
-            if (imp_inst->objectID < ctx.data().numObjects - 6) {
-                Entity e_inst = ctx.makeEntity<DummyRenderable>();
-                ctx.get<Position>(e_inst) = imp_inst->position;
-                ctx.get<Rotation>(e_inst) = imp_inst->rotation;
-                ctx.get<Scale>(e_inst) = imp_inst->scale;
-                ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
+            Entity e_inst = ctx.makeEntity<DummyRenderable>();
+            ctx.get<Position>(e_inst) = imp_inst->position;
+            ctx.get<Rotation>(e_inst) = imp_inst->rotation;
+            ctx.get<Scale>(e_inst) = imp_inst->scale;
+            ctx.get<ObjectID>(e_inst).idx = imp_inst->objectID;
 
-                render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
-            }
+            render::RenderingSystem::makeEntityRenderable(ctx, e_inst);
         }
     }
 #endif

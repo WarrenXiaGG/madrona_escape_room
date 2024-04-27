@@ -204,6 +204,209 @@ struct Manager::CUDAImpl final : Manager::Impl {
 
 // #define LOAD_ENV 2
 
+struct LoadResult {
+    std::vector<ImportedInstance> importedInstances;
+    std::vector<UniqueScene> uniqueSceneInfos;
+};
+
+#if 1
+static imp::ImportedAssets loadScenes(
+        Optional<render::RenderManager> &render_mgr,
+        uint32_t first_unique_scene,
+        uint32_t num_unique_scenes,
+        LoadResult &load_result)
+{
+    std::string hssd_scenes = std::filesystem::path(DATA_DIR) /
+        "hssd-hab/scenes-uncluttered";
+    
+    std::vector<std::string> scene_paths;
+
+    for (const auto &dir_entry :
+            std::filesystem::directory_iterator(hssd_scenes)) {
+        scene_paths.push_back(dir_entry.path());
+    }
+
+    std::vector<std::string> render_asset_paths;
+    render_asset_paths.resize((size_t)SimObjectDefault::NumObjects);
+
+    render_asset_paths[(size_t)SimObjectDefault::Cube] =
+        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Wall] =
+        (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Door] =
+        (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Agent] =
+        (std::filesystem::path(DATA_DIR) / "agent_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Button] =
+        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Plane] =
+        (std::filesystem::path(DATA_DIR) / "plane.obj").string();
+    render_asset_paths[(size_t)SimObjectDefault::Dust2] =
+        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
+
+    float height_offset = 0.f;
+    float scale = 10.f;
+
+    // Get all the asset paths and push unique scene infos
+    for (int i = first_unique_scene; 
+            i < first_unique_scene + num_unique_scenes; ++i) {
+        std::string scene_path = scene_paths[i];
+        auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
+
+        // Store the current imported instances offset
+        uint32_t imported_instances_offset = 
+            load_result.importedInstances.size();
+
+        UniqueScene unique_scene_info = {
+            .numInstances = 0,
+            .instancesOffset = imported_instances_offset,
+            .center = { 0.f, 0.f, 0.f }
+        };
+
+        load_result.importedInstances.push_back({
+            .position = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
+                        rotateVec({ 0.f, 0.f, 0.f + height_offset }) * scale,
+            .rotation = Quat::angleAxis(pi_d2,{ 1.f, 0.f, 0.f }) *
+                        Quat::angleAxis(0.f, math::up),
+            .scale = { scale, scale, scale },
+            .objectID = (int32_t)render_asset_paths.size(),
+        });
+
+        render_asset_paths.push_back(loaded_scene.stagePath.string());
+
+        std::unordered_map<std::string, uint32_t> loaded_gltfs;
+        std::unordered_map<uint32_t, uint32_t> object_to_imported_instance;
+
+        for (const HabitatJSON::AdditionalInstance &inst :
+                loaded_scene.additionalInstances) {
+            auto path_view = inst.gltfPath.string();
+            auto extension_pos = path_view.rfind('.');
+            assert(extension_pos != path_view.npos);
+            auto extension = path_view.substr(extension_pos + 1);
+
+            if (extension == "json") {
+                continue;
+            }
+
+            auto [iter, insert_success] = loaded_gltfs.emplace(inst.gltfPath.string(), 
+                    render_asset_paths.size());
+            if (insert_success) {
+                auto pos = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
+                           rotateVec(Vector3{ inst.pos[0], inst.pos[1], 
+                                              inst.pos[2] + height_offset });
+
+                auto scale_vec = madrona::math::Diag3x3 {
+                    inst.scale[0] * scale,
+                    inst.scale[1] * scale,
+                    inst.scale[2] * scale
+                };
+                
+                ImportedInstance new_inst = {
+                    .position = {pos.x * scale, pos.y * scale, pos.z * scale},
+                    .rotation = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }) * 
+                                Quat{ inst.rotation[0], inst.rotation[1],
+                                      inst.rotation[2], inst.rotation[3] },
+                    .scale = scale_vec,
+                    .objectID = (int32_t)render_asset_paths.size(),
+                };
+
+                load_result.importedInstances.push_back(new_inst);
+                render_asset_paths.push_back(inst.gltfPath.string());
+            } else {
+                // Push the instance to the instances array
+                auto pos = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
+                           rotateVec(Vector3{ inst.pos[0], inst.pos[1], 
+                                              inst.pos[2] + height_offset });
+
+                auto scale_vec = madrona::math::Diag3x3 {
+                    inst.scale[0] * scale,
+                    inst.scale[1] * scale,
+                    inst.scale[2] * scale
+                };
+
+                ImportedInstance new_inst = {
+                    .position = {pos.x * scale,pos.y * scale,pos.z * scale},
+                    .rotation = Quat::angleAxis(pi_d2,{ 1.f, 0.f, 0.f }) *
+                                Quat{ inst.rotation[0], inst.rotation[1],
+                                      inst.rotation[2], inst.rotation[3] },
+                    .scale = scale_vec,
+                    .objectID = (int32_t)iter->second,
+                };
+
+                load_result.importedInstances.push_back(new_inst);
+            }
+
+            unique_scene_info.numInstances =
+                load_result.importedInstances.size() - unique_scene_info.instancesOffset;
+        }
+
+        load_result.uniqueSceneInfos.push_back(unique_scene_info);
+
+        printf("Loaded %d render objects\n", (int)loaded_gltfs.size());
+    }
+
+    std::vector<const char *> render_asset_cstrs;
+    for (size_t i = 0; i < render_asset_paths.size(); i++) {
+        render_asset_cstrs.push_back(render_asset_paths[i].c_str());
+    }
+
+    std::array<char, 1024> import_err;
+    auto render_assets = imp::ImportedAssets::importFromDisk(
+        render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
+        true, true);
+
+    if (!render_assets.has_value()) {
+        FATAL("Failed to load render assets: %s", import_err);
+    }
+
+    auto materials = std::to_array<imp::SourceMaterial>({
+        { render::rgb8ToFloat(191, 108, 10), -1, 0.8f, 0.2f },
+        { math::Vector4{0.4f, 0.4f, 0.4f, 0.0f}, -1, 0.8f, 0.2f,},
+        { math::Vector4{1.f, 1.f, 1.f, 0.0f}, 1, 0.5f, 1.0f,},
+        { render::rgb8ToFloat(230, 230, 230),   -1, 0.8f, 1.0f },
+        { math::Vector4{0.5f, 0.3f, 0.3f, 0.0f},  0, 0.8f, 0.2f,},
+        { render::rgb8ToFloat(230, 20, 20),   -1, 0.8f, 1.0f },
+        { render::rgb8ToFloat(230, 230, 20),   -1, 0.8f, 1.0f },
+        { render::rgb8ToFloat(230, 230, 230),   -1, 0.8f, 1.0f },
+    });
+
+    uint32_t habitat_material = 7;
+
+    render_assets->objects[(CountT)SimObjectDefault::Cube].meshes[0].materialIDX = 0;
+    render_assets->objects[(CountT)SimObjectDefault::Wall].meshes[0].materialIDX = 1;
+    render_assets->objects[(CountT)SimObjectDefault::Door].meshes[0].materialIDX = 5;
+    render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[0].materialIDX = 2;
+    render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[1].materialIDX = 3;
+    render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[2].materialIDX = 3;
+    render_assets->objects[(CountT)SimObjectDefault::Button].meshes[0].materialIDX = 6;
+    render_assets->objects[(CountT)SimObjectDefault::Plane].meshes[0].materialIDX = 4;
+
+    for (int obj_i = (int)SimObjectDefault::NumObjects;
+            obj_i < render_assets->objects.size(); ++obj_i) {
+        auto *obj_data = &render_assets->objects[obj_i];
+
+        for (int mesh_i = 0; mesh_i < obj_data->meshes.size(); ++mesh_i) {
+            obj_data->meshes[mesh_i].materialIDX = habitat_material;
+        }
+    }
+
+    if (render_mgr.has_value()) {
+        render_mgr->loadObjects(render_assets->objects, materials, {
+            { (std::filesystem::path(DATA_DIR) /
+               "green_grid.png").string().c_str() },
+            { (std::filesystem::path(DATA_DIR) /
+               "smile.png").string().c_str() },
+        });
+
+        render_mgr->configureLighting({
+            { true, math::Vector3{1.0f, -1.0f, -0.05f}, math::Vector3{1.0f, 1.0f, 1.0f} }
+        });
+    }
+
+    return std::move(*render_assets);
+}
+#endif
+
 static imp::ImportedAssets loadRenderObjects(
         Optional<render::RenderManager> &render_mgr,
         std::vector<ImportedInstance> &imported_instances,
@@ -286,6 +489,15 @@ static imp::ImportedAssets loadRenderObjects(
 
         for (const HabitatJSON::AdditionalInstance &inst :
                 loaded_scene.additionalInstances) {
+            auto path_view = inst.gltfPath.string();
+            auto extension_pos = path_view.rfind('.');
+            assert(extension_pos != path_view.npos);
+            auto extension = path_view.substr(extension_pos + 1);
+
+            if (extension == "json") {
+                continue;
+            }
+
             auto [iter, insert_success] = loaded_gltfs.emplace(inst.gltfPath.string(), 
                     render_asset_paths.size());
             if (insert_success) {
@@ -298,7 +510,7 @@ static imp::ImportedAssets loadRenderObjects(
                     inst.scale[1] * scale,
                     inst.scale[2] * scale
                 };
-                
+
                 ImportedInstance new_inst = {
                     .position = {pos.x * scale, pos.y * scale, pos.z * scale},
                     .rotation = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }) * 
@@ -338,20 +550,20 @@ static imp::ImportedAssets loadRenderObjects(
         printf("Loaded %d render objects\n", (int)loaded_gltfs.size());
     }
 
-    for (size_t i = 0; i < render_asset_paths.size(); ++i) {
-        printf("%s\n", render_asset_paths[i].c_str());
-    }
-
     // std::array<const char *, (size_t)SimObjectDefault::NumObjects> render_asset_cstrs;
     std::vector<const char *> render_asset_cstrs;
-    for (size_t i = 0; i < render_asset_paths.size()-6; i++) {
+    for (size_t i = 0; i < render_asset_paths.size(); i++) {
         render_asset_cstrs.push_back(render_asset_paths[i].c_str());
     }
+
+    printf("%d num gltfs\n", render_asset_paths.size());
 
     std::array<char, 1024> import_err;
     auto render_assets = imp::ImportedAssets::importFromDisk(
         render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
         true, true);
+
+    printf("%d render assets objects\n", render_assets->objects.size());
 
     if (!render_assets.has_value()) {
         FATAL("Failed to load render assets: %s", import_err);
@@ -384,102 +596,6 @@ static imp::ImportedAssets loadRenderObjects(
             i++) {
         render_assets->objects[(CountT) SimObjectDefault::Dust2].meshes[i].materialIDX = 0;
     }
-
-    if (merge_all) {
-        //Count up total memory requirements
-        size_t vertex_size = 0;
-        size_t indices_size = 0;
-
-        printf("Render asset size %d\n",render_assets->objects.size());
-        for(auto& inst : imported_instances){
-            if(inst.objectID >= render_assets->objects.size())
-                continue;
-            auto& render_asset = render_assets->objects[inst.objectID];
-            for (int mesh_i = 0; mesh_i < render_asset.meshes.size(); ++mesh_i) {
-                vertex_size += render_asset.meshes[mesh_i].numVertices;
-                indices_size += render_asset.meshes[mesh_i].numFaces * 3;
-            }
-        }
-
-        fprintf(stderr,"Pre alloc %lu,%lu\n",indices_size,vertex_size);
-        DynArray<madrona::imp::SourceMesh> dummy_vector(1);
-        DynArray<Vector3> positions(vertex_size);
-        DynArray<Vector3> normals(vertex_size);
-        DynArray<Vector4> tangentsSigns(vertex_size);
-        DynArray<Vector2> uvs(vertex_size);
-        DynArray<uint32_t> indices(indices_size);
-
-        uint32_t v_index = 0;
-        uint32_t i_index = 0;
-        for(ImportedInstance& inst : imported_instances) {
-            if(inst.objectID >= render_assets->objects.size())
-                continue;
-            auto& render_asset = render_assets->objects[inst.objectID];
-            for (int mesh_i = 0; mesh_i < render_asset.meshes.size(); ++mesh_i) {
-                madrona::imp::SourceMesh& mesh = render_asset.meshes[mesh_i];
-
-                for(size_t i = 0; i < mesh.numFaces; i++){
-                    indices.push_back(mesh.indices[i*3] + v_index);
-                    indices.push_back(mesh.indices[i*3 + 1] + v_index);
-                    indices.push_back(mesh.indices[i*3 + 2] + v_index);
-                    i_index += 3;
-                }
-
-                for(size_t i = 0; i < mesh.numVertices; i++){
-                    positions.push_back(inst.rotation.rotateVec(inst.scale * mesh.positions[i]) + inst.position);
-                    normals.push_back(inst.rotation.rotateVec((inst.scale * mesh.normals[i]).normalize()).normalize());
-                    if(mesh.tangentAndSigns) {
-                        tangentsSigns.push_back(mesh.tangentAndSigns[i]);
-                    }
-                    if(mesh.uvs) {
-                        uvs.push_back(mesh.uvs[i]);
-                    }else{
-                        uvs.push_back(Vector2{0,0});
-                    }
-
-                    v_index++;
-                }
-            }
-        }
-        printf("Done with merge\n");
-
-        madrona::imp::SourceMesh merged_mesh{
-            .positions = positions.data(),
-                .normals = normals.data(),
-                .tangentAndSigns = nullptr,
-                .uvs = uvs.data(),
-                .indices = indices.data(),
-                .faceCounts = nullptr,
-                .faceMaterials = nullptr,
-                .numVertices = (uint32_t)vertex_size,
-                .numFaces = (uint32_t)indices_size / 3,
-                .materialIDX = habitat_material,
-        };
-
-        dummy_vector.push_back(merged_mesh);
-
-        madrona::imp::SourceObject object{
-            madrona::Span<madrona::imp::SourceMesh>(dummy_vector.data(),1)
-        };
-        printf("Pre remove objects %p,%p,%p,%p,%p,%p\n",positions.data(),normals.data(),tangentsSigns.data(),indices.data(),
-                uvs.data(),dummy_vector.data());
-        //Remove the unmerged originals
-
-        uint32_t sub = (loaded_env[0] == '2') ? 9 : 6;
-
-        for (int obj_i = (int)SimObjectDefault::NumObjects; obj_i < render_asset_paths.size()-sub; ++obj_i) {  //Use this for env 0 and 1
-                                                                                                               //for (int obj_i = (int)SimObjectDefault::NumObjects; obj_i < render_asset_paths.size()-9; ++obj_i) {  //Use this for env 2
-            render_assets->objects.pop_back();
-        }
-        printf("Past remove objects %d\n",uvs.size());
-        render_assets->objects.push_back(object);
-        render_assets->geoData.positionArrays.emplace_back(std::move(positions));
-        render_assets->geoData.normalArrays.emplace_back(std::move(normals));
-        render_assets->geoData.uvArrays.emplace_back(std::move(uvs));
-        //render_assets->geoData.tangentAndSignArrays.emplace_back(std::move(tangentsSigns));
-        render_assets->geoData.indexArrays.emplace_back(std::move(indices));
-        render_assets->geoData.meshArrays.emplace_back(std::move(dummy_vector));
-        }
 
     for (int obj_i = (int)SimObjectDefault::NumObjects;
             obj_i < render_assets->objects.size(); ++obj_i) {
@@ -688,15 +804,21 @@ Manager::Impl * Manager::Impl::init(
         imp::ImportedAssets::GPUGeometryData gpu_imported_assets;
         std::vector<ImportedInstance> imported_instances;
 
-        const char *merge_all_env = getenv("MADRONA_MERGE_ALL");
-        assert(merge_all_env);
+        sim_cfg.mergeAll = false;
 
-        bool merge_all = (merge_all_env[0] == '1');
-        sim_cfg.mergeAll = merge_all;
+         const char *first_unique_scene_str = getenv("HSSD_FIRST_SCENE");
+        const char *num_unique_scene_str = getenv("HSSD_NUM_SCENES");
 
-        math::Vector2 scene_center;
-        auto imported_assets = loadRenderObjects(
-                render_mgr, imported_instances, &scene_center, merge_all);
+        assert(first_unique_scene_str && num_unique_scene_str);
+
+        printf("%d %d\n", std::stoi(first_unique_scene_str), std::stoi(num_unique_scene_str));
+
+        LoadResult load_result = {};
+
+        auto imported_assets = loadScenes(
+                render_mgr, std::stoi(first_unique_scene_str),
+                std::stoi(num_unique_scene_str),
+                load_result);
 
         auto gpu_imported_assets_opt =
             imp::ImportedAssets::makeGPUData(imported_assets);
@@ -706,15 +828,30 @@ Manager::Impl * Manager::Impl::init(
         gpu_imported_assets = std::move(*gpu_imported_assets_opt);
 
         sim_cfg.importedInstances = (ImportedInstance *)cu::allocGPU(
-                sizeof(ImportedInstance) * imported_instances.size());
-        sim_cfg.numImportedInstances = imported_instances.size();
+                sizeof(ImportedInstance) *
+                load_result.importedInstances.size());
+
+        sim_cfg.numImportedInstances = load_result.importedInstances.size();
         sim_cfg.numObjects = gpu_imported_assets.numBVHs;
 
-        sim_cfg.sceneCenter = scene_center;
+        sim_cfg.numUniqueScenes = load_result.uniqueSceneInfos.size();
+        sim_cfg.uniqueScenes = (UniqueScene *)cu::allocGPU(
+                sizeof(UniqueScene) * load_result.uniqueSceneInfos.size());
 
-        REQ_CUDA(cudaMemcpy(sim_cfg.importedInstances, imported_instances.data(),
-                            sizeof(ImportedInstance) * imported_instances.size(),
-                            cudaMemcpyHostToDevice));
+        sim_cfg.numWorlds = mgr_cfg.numWorlds;
+
+        REQ_CUDA(cudaMemcpy(sim_cfg.importedInstances, 
+                    load_result.importedInstances.data(),
+                    sizeof(ImportedInstance) *
+                    load_result.importedInstances.size(),
+                    cudaMemcpyHostToDevice));
+
+        REQ_CUDA(cudaMemcpy(sim_cfg.uniqueScenes, 
+                    load_result.uniqueSceneInfos.data(),
+                    sizeof(UniqueScene) *
+                    load_result.uniqueSceneInfos.size(),
+                    cudaMemcpyHostToDevice));
+
 
         if (render_mgr.has_value()) {
             sim_cfg.renderBridge = render_mgr->bridge();

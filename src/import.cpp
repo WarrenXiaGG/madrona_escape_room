@@ -42,6 +42,7 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
         scene.stagePath = 
             stage_dir / render_asset_name;
 
+#if 0
         string_view lighting_path_str = string_view(root["default_lighting"]);
         if (lighting_path_str.length() > 0) {
             path lighting_path = lighting_path_str;
@@ -90,6 +91,7 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
                 }
             }
         }
+#endif
 
         simdjson::dom::parser nested_parser;
         auto insts = root["object_instances"];
