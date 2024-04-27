@@ -724,6 +724,8 @@ Sim::Sim(Engine &ctx,
         unique_scene->instancesOffset;
 
     numImportedInstances = unique_scene->numInstances;
+
+    worldCenter = { unique_scene->center.x, unique_scene->center.y };
     
     initRandKey = cfg.initRandKey;
     autoReset = cfg.autoReset;
@@ -744,8 +746,6 @@ Sim::Sim(Engine &ctx,
     initWorld(ctx);
 
     currentTime = 0.f;
-
-    worldCenter = cfg.sceneCenter;
 }
 
 // This declaration is needed for the GPU backend in order to generate the

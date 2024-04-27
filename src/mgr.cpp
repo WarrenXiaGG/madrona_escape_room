@@ -352,8 +352,11 @@ static imp::ImportedAssets loadScenes(
 
             unique_scene_info.numInstances =
                 load_result.importedInstances.size() - unique_scene_info.instancesOffset;
-            unique_scene_info.center = unique_scene_info.center / (float)num_center_contribs;
         }
+
+        unique_scene_info.center = unique_scene_info.center / (float)num_center_contribs;
+
+        printf("%f %f %f\n", unique_scene_info.center.x, unique_scene_info.center.y, unique_scene_info.center.z);
 
         load_result.uniqueSceneInfos.push_back(unique_scene_info);
 
