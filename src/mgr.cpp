@@ -42,11 +42,11 @@ struct RenderGPUState {
 static inline Optional<RenderGPUState> initRenderGPUState(
     const Manager::Config &mgr_cfg)
 {
-#if defined(MADRONA_VIEWER)
-    if (mgr_cfg.extRenderDev || !mgr_cfg.enableBatchRenderer) {
-        return Optional<RenderGPUState>::none();
+    if (!mgr_cfg.headlessMode) {
+        if (mgr_cfg.extRenderDev || !mgr_cfg.enableBatchRenderer) {
+            return Optional<RenderGPUState>::none();
+        }
     }
-#endif
 
     auto render_api_lib = render::APIManager::loadDefaultLib();
     render::APIManager render_api_mgr(render_api_lib.lib());
@@ -67,11 +67,11 @@ static inline Optional<render::RenderManager> initRenderManager(
         return Optional<render::RenderManager>::none();
     }
 
-#if defined(MADRONA_VIEWER)
-    if (!mgr_cfg.extRenderDev && !mgr_cfg.enableBatchRenderer) {
-        return Optional<render::RenderManager>::none();
+    if (!mgr_cfg.headlessMode) {
+        if (!mgr_cfg.extRenderDev && !mgr_cfg.enableBatchRenderer) {
+            return Optional<render::RenderManager>::none();
+        }
     }
-#endif
 
     render::APIBackend *render_api;
     render::GPUDevice *render_dev;
@@ -104,6 +104,7 @@ struct Manager::Impl {
     Optional<RenderGPUState> renderGPUState;
     Optional<render::RenderManager> renderMgr;
     uint32_t raycastOutputResolution;
+    bool headlessMode;
 
     inline Impl(const Manager::Config &mgr_cfg,
                 PhysicsLoader &&phys_loader,
@@ -118,7 +119,8 @@ struct Manager::Impl {
           agentActionsBuffer(action_buffer),
           renderGPUState(std::move(render_gpu_state)),
           renderMgr(std::move(render_mgr)),
-          raycastOutputResolution(raycast_output_resolution)
+          raycastOutputResolution(raycast_output_resolution),
+          headlessMode(mgr_cfg.headlessMode)
     {}
 
     inline virtual ~Impl() {}
@@ -1058,6 +1060,17 @@ void Manager::step()
 {
     impl_->run();
 
+    if (impl_->headlessMode) {
+        if (impl_->cfg.enableBatchRenderer) {
+            impl_->renderMgr->readECS();
+        }
+    } else {
+        if (impl_->renderMgr.has_value()) {
+            impl_->renderMgr->readECS();
+        }
+    }
+
+    /*
 #if defined(MADRONA_VIEWER)
     if (impl_->renderMgr.has_value()) {
 #else
@@ -1065,6 +1078,7 @@ void Manager::step()
 #endif
         impl_->renderMgr->readECS();
     }
+    */
 
     if (impl_->cfg.enableBatchRenderer) {
         impl_->renderMgr->batchRender();
