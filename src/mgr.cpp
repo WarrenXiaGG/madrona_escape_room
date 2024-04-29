@@ -226,6 +226,17 @@ static imp::ImportedAssets loadScenes(
 
     std::string hssd_scenes = std::filesystem::path(DATA_DIR) /
         "hssd-hab/scenes-uncluttered";
+    std::string procthor_scenes = std::filesystem::path(DATA_DIR) /
+        "ai2thor-hab/ai2thor-hab/configs/scenes/ProcTHOR/5";
+    std::string procthor_root = std::filesystem::path(DATA_DIR) /
+        "ai2thor-hab/ai2thor-hab/configs";
+
+    //Use Uncompressed because our GLTF loader doesn't support loading compressed vertex formats
+    std::string procthor_obj_root = std::filesystem::path(DATA_DIR) /
+        "ai2thor-hab/ai2thorhab-uncompressed/configs";
+
+    //Uncomment this for procthor
+    //hssd_scenes = procthor_scenes;
     
     std::vector<std::string> scene_paths;
 
@@ -265,6 +276,9 @@ static imp::ImportedAssets loadScenes(
         std::string scene_path = scene_paths[i];
         auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
 
+        //uncomment this for procthor
+        //auto loaded_scene = HabitatJSON::procThorJSONLoad(procthor_root,procthor_obj_root,scene_path);
+
         // Store the current imported instances offset
         uint32_t imported_instances_offset = 
             load_result.importedInstances.size();
@@ -275,11 +289,16 @@ static imp::ImportedAssets loadScenes(
             .center = { 0.f, 0.f, 0.f }
         };
 
+        float stage_angle = 0;
+        if(loaded_scene.stageFront[0] == -1){
+            stage_angle = -pi/2;
+        }
+        Quat stage_rot = Quat::angleAxis(pi_d2,{ 1.f, 0.f, 0.f }) *
+                        Quat::angleAxis(stage_angle,{0,1,0});
+
         load_result.importedInstances.push_back({
-            .position = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
-                        rotateVec({ 0.f, 0.f, 0.f + height_offset }) * scale,
-            .rotation = Quat::angleAxis(pi_d2,{ 1.f, 0.f, 0.f }) *
-                        Quat::angleAxis(0.f, math::up),
+            .position = stage_rot.rotateVec({ 0.f, 0.f, 0.f + height_offset }),
+            .rotation = stage_rot,
             .scale = { scale, scale, scale },
             .objectID = (int32_t)render_asset_paths.size(),
         });
