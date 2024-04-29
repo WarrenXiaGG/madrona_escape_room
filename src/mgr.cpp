@@ -222,6 +222,8 @@ static imp::ImportedAssets loadScenes(
         uint32_t num_unique_scenes,
         LoadResult &load_result)
 {
+    const char *cache_everything = getenv("MADRONA_CACHE_ALL_BVH");
+
     std::string hssd_scenes = std::filesystem::path(DATA_DIR) /
         "hssd-hab/scenes-uncluttered";
     
@@ -230,6 +232,10 @@ static imp::ImportedAssets loadScenes(
     for (const auto &dir_entry :
             std::filesystem::directory_iterator(hssd_scenes)) {
         scene_paths.push_back(dir_entry.path());
+    }
+
+    if (cache_everything && std::stoi(cache_everything) == 1) {
+        num_unique_scenes = scene_paths.size();
     }
 
     std::vector<std::string> render_asset_paths;
@@ -375,6 +381,10 @@ static imp::ImportedAssets loadScenes(
         render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
         true, true);
 
+    if (cache_everything && std::stoi(cache_everything) == 1) {
+        exit(0);
+    }
+
     if (!render_assets.has_value()) {
         FATAL("Failed to load render assets: %s", import_err);
     }
@@ -435,7 +445,6 @@ static imp::ImportedAssets loadRenderObjects(
         math::Vector2 *scene_center,
         bool merge_all)
 {
-    //(void)bvh;
     std::vector<render::MeshBVH::Node> nodes;
     std::vector<render::MeshBVH::LeafGeometry> leafGeos;
     std::vector<render::MeshBVH::LeafMaterial> leafMats;
