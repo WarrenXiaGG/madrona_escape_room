@@ -324,9 +324,11 @@ int main(int argc, char *argv[])
 
         printObs();
     }, [&]() {
+        uint32_t num_images = 16;
+
         unsigned char* print_ptr;
         #ifdef MADRONA_CUDA_SUPPORT
-            int64_t num_bytes = 3 * raycast_output_resolution * raycast_output_resolution;
+            int64_t num_bytes = 3 * raycast_output_resolution * raycast_output_resolution * num_images;
             print_ptr = (unsigned char*)cu::allocReadback(num_bytes);
         #else
             print_ptr = nullptr;
@@ -335,14 +337,18 @@ int main(int argc, char *argv[])
         char *raycast_tensor = (char *)(mgr.raycastTensor().devicePtr());
 
         uint32_t bytes_per_image = 3 * raycast_output_resolution * raycast_output_resolution;
+
         uint32_t image_idx = viewer.getCurrentWorldID() * consts::numAgents + 
             std::max(viewer.getCurrentViewID(), (CountT)0);
+
+        uint32_t base_image_idx = num_images * (image_idx / num_images);
+
         raycast_tensor += image_idx * bytes_per_image;
 
         if(exec_mode == ExecMode::CUDA){
 #ifdef MADRONA_CUDA_SUPPORT
             cudaMemcpy(print_ptr, raycast_tensor,
-                    bytes_per_image,
+                    num_bytes,
                     cudaMemcpyDeviceToHost);
             raycast_tensor = (char *)print_ptr;
 #endif
@@ -360,22 +366,24 @@ int main(int argc, char *argv[])
         int extentsX = (int)(pixScale * raycast_output_resolution);
         int extentsY = (int)(pixScale * raycast_output_resolution);
 
-        for (int i = 0; i < raycast_output_resolution; i++) {
-            for (int j = 0; j < raycast_output_resolution; j++) {
-                uint32_t linear_idx = 3 * (j + i * raycast_output_resolution);
+        for (int image = 0; image < num_images; ++image) {
+            for (int i = 0; i < raycast_output_resolution; i++) {
+                for (int j = 0; j < raycast_output_resolution; j++) {
+                    uint32_t linear_idx = 3 * (j + (i + image * raycast_output_resolution) * raycast_output_resolution);
 
-                auto realColor = IM_COL32(
-                        raycasters[linear_idx + 0],
-                        raycasters[linear_idx + 1],
-                        raycasters[linear_idx + 2], 
-                        255);
+                    auto realColor = IM_COL32(
+                            raycasters[linear_idx + 0],
+                            raycasters[linear_idx + 1],
+                            raycasters[linear_idx + 2], 
+                            255);
 
-                draw2->AddRectFilled(
-                    { (i * pixScale) + windowPos.x, 
-                      (j * pixScale) + windowPos.y +vertOff }, 
-                    { ((i + 1) * pixScale) + windowPos.x,   
-                      ((j + 1) * pixScale)+ +windowPos.y+vertOff },
-                    realColor, 0, 0);
+                    draw2->AddRectFilled(
+                        { (i * pixScale) + windowPos.x, 
+                          ((j + image * raycast_output_resolution) * pixScale) + windowPos.y + vertOff }, 
+                        { ((i + 1) * pixScale) + windowPos.x,   
+                          ((j + image * raycast_output_resolution + 1) * pixScale) + +windowPos.y + vertOff },
+                        realColor, 0, 0);
+                }
             }
         }
         ImGui::End();

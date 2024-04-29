@@ -2,6 +2,10 @@
 #include "sim.hpp"
 #include "import.hpp"
 
+#include <random>
+#include <numeric>
+#include <algorithm>
+
 #include <madrona/utils.hpp>
 #include <madrona/importer.hpp>
 #include <madrona/physics_loader.hpp>
@@ -270,10 +274,20 @@ static imp::ImportedAssets loadScenes(
     float height_offset = 0.f;
     float scale = 10.f;
 
+    // Generate random permutation of iota
+    std::vector<int> random_indices(scene_paths.size());
+    std::iota(random_indices.begin(), random_indices.end(), 0);
+
+    auto rnd_dev = std::random_device {};
+    auto rng = std::default_random_engine { rnd_dev() };
+    std::shuffle(random_indices.begin(), random_indices.end(), rng);
+
     // Get all the asset paths and push unique scene infos
-    for (int i = first_unique_scene; 
-            i < first_unique_scene + num_unique_scenes; ++i) {
-        std::string scene_path = scene_paths[i];
+    for (int i = 0; i < num_unique_scenes; ++i) {
+        int random_index = random_indices[i];
+        printf("################ Loading scene with index %d #######################\n", random_index);
+
+        std::string scene_path = scene_paths[random_index];
         auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
 
         //uncomment this for procthor
