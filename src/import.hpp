@@ -41,6 +41,9 @@ struct Scene {
 };
 
 Scene habitatJSONLoad(std::string_view scene_path_name);
-Scene procThorJSONLoad(std::string_view root_paths, std::string_view obj_root_paths, std::string_view scene_path_name);
+
+Scene procThorJSONLoad(std::string_view root_paths,
+                       std::string_view obj_root_paths,
+                       std::string_view scene_path_name);
 
 }

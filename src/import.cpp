@@ -221,7 +221,9 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
     return scene;
 }
 
-Scene procThorJSONLoad(std::string_view root_paths, std::string_view obj_root_paths, std::string_view scene_path_name)
+Scene procThorJSONLoad(std::string_view root_paths,
+                       std::string_view obj_root_paths,
+                       std::string_view scene_path_name)
 {
     using namespace filesystem;
     using namespace simdjson;
