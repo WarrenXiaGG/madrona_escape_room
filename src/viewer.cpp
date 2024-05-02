@@ -324,11 +324,14 @@ int main(int argc, char *argv[])
 
         printObs();
     }, [&]() {
-        uint32_t num_images = 16;
+        uint32_t num_image_x = 16;
+        uint32_t num_image_y = 4;
+
+        uint32_t num_images_total = num_image_x * num_image_y;
 
         unsigned char* print_ptr;
         #ifdef MADRONA_CUDA_SUPPORT
-            int64_t num_bytes = 3 * raycast_output_resolution * raycast_output_resolution * num_images;
+            int64_t num_bytes = 3 * raycast_output_resolution * raycast_output_resolution * num_images_total;
             print_ptr = (unsigned char*)cu::allocReadback(num_bytes);
         #else
             print_ptr = nullptr;
@@ -341,7 +344,7 @@ int main(int argc, char *argv[])
         uint32_t image_idx = viewer.getCurrentWorldID() * consts::numAgents + 
             std::max(viewer.getCurrentViewID(), (CountT)0);
 
-        uint32_t base_image_idx = num_images * (image_idx / num_images);
+        uint32_t base_image_idx = num_images_total * (image_idx / num_images_total);
 
         raycast_tensor += image_idx * bytes_per_image;
 
@@ -366,23 +369,28 @@ int main(int argc, char *argv[])
         int extentsX = (int)(pixScale * raycast_output_resolution);
         int extentsY = (int)(pixScale * raycast_output_resolution);
 
-        for (int image = 0; image < num_images; ++image) {
-            for (int i = 0; i < raycast_output_resolution; i++) {
-                for (int j = 0; j < raycast_output_resolution; j++) {
-                    uint32_t linear_idx = 3 * (j + (i + image * raycast_output_resolution) * raycast_output_resolution);
+        for (int image_y = 0; image_y < num_image_y; ++image_y) {
+            for (int image_x = 0; image_x < num_image_x; ++image_x) {
+                for (int i = 0; i < raycast_output_resolution; i++) {
+                    for (int j = 0; j < raycast_output_resolution; j++) {
+                        uint32_t linear_image_idx = image_x + image_y * num_image_x;
 
-                    auto realColor = IM_COL32(
-                            raycasters[linear_idx + 0],
-                            raycasters[linear_idx + 1],
-                            raycasters[linear_idx + 2], 
-                            255);
+                        uint32_t linear_idx = 3 * 
+                            (j + (i + linear_image_idx * raycast_output_resolution) * raycast_output_resolution);
 
-                    draw2->AddRectFilled(
-                        { (i * pixScale) + windowPos.x, 
-                          ((j + image * raycast_output_resolution) * pixScale) + windowPos.y + vertOff }, 
-                        { ((i + 1) * pixScale) + windowPos.x,   
-                          ((j + image * raycast_output_resolution + 1) * pixScale) + +windowPos.y + vertOff },
-                        realColor, 0, 0);
+                        auto realColor = IM_COL32(
+                                raycasters[linear_idx + 0],
+                                raycasters[linear_idx + 1],
+                                raycasters[linear_idx + 2], 
+                                255);
+
+                        draw2->AddRectFilled(
+                            { ((i + image_x * raycast_output_resolution) * pixScale) + windowPos.x, 
+                              ((j + image_y * raycast_output_resolution) * pixScale) + windowPos.y + vertOff }, 
+                            { ((i + 1 + image_x * raycast_output_resolution) * pixScale) + windowPos.x,   
+                              ((j + image_y * raycast_output_resolution + 1) * pixScale) + +windowPos.y + vertOff },
+                            realColor, 0, 0);
+                    }
                 }
             }
         }

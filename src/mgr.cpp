@@ -280,6 +280,13 @@ static imp::ImportedAssets loadScenes(
 
     auto rnd_dev = std::random_device {};
     auto rng = std::default_random_engine { rnd_dev() };
+
+    const char *seed_str = getenv("MADRONA_SEED");
+    if (seed_str) {
+        printf("Using seed!\n");
+        rng.seed(std::stoi(seed_str));
+    }
+
     std::shuffle(random_indices.begin(), random_indices.end(), rng);
 
     // Get all the asset paths and push unique scene infos
