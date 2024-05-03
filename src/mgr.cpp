@@ -233,6 +233,7 @@ static imp::ImportedAssets loadScenes(
         const std::string &smile_path)
 {
     const char *cache_everything = getenv("MADRONA_CACHE_ALL_BVH");
+    const char *proc_thor = getenv("MADRONA_PROC_THOR");
 
     std::string hssd_scenes = std::filesystem::path(DATA_DIR) /
         "hssd-hab/scenes";
@@ -246,7 +247,9 @@ static imp::ImportedAssets loadScenes(
         "ai2thor-hab/ai2thorhab-uncompressed/configs";
 
     //Uncomment this for procthor
-    //hssd_scenes = procthor_scenes;
+    if (proc_thor && proc_thor[0] == '1') {
+        hssd_scenes = procthor_scenes;
+    }
     
     std::vector<std::string> scene_paths;
 
@@ -296,15 +299,24 @@ static imp::ImportedAssets loadScenes(
     std::shuffle(random_indices.begin(), random_indices.end(), rng);
 
     // Get all the asset paths and push unique scene infos
+    uint32_t num_loaded_scenes = 0;
+
     for (int i = 0; i < num_unique_scenes; ++i) {
         int random_index = random_indices[i];
         printf("################ Loading scene with index %d #######################\n", random_index);
 
         std::string scene_path = scene_paths[random_index];
-        auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
+        HabitatJSON::Scene loaded_scene;
 
         //uncomment this for procthor
-        //auto loaded_scene = HabitatJSON::procThorJSONLoad(procthor_root,procthor_obj_root,scene_path);
+        if (proc_thor && proc_thor[0] == '1') {
+            loaded_scene = HabitatJSON::procThorJSONLoad(
+                    procthor_root,
+                    procthor_obj_root,
+                    scene_path);
+        } else {
+            loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
+        }
 
         // Store the current imported instances offset
         uint32_t imported_instances_offset = 
@@ -334,7 +346,6 @@ static imp::ImportedAssets loadScenes(
 
         std::unordered_map<std::string, uint32_t> loaded_gltfs;
         std::unordered_map<uint32_t, uint32_t> object_to_imported_instance;
-
         uint32_t num_center_contribs = 0;
 
         for (const HabitatJSON::AdditionalInstance &inst :
@@ -415,7 +426,11 @@ static imp::ImportedAssets loadScenes(
         load_result.uniqueSceneInfos.push_back(unique_scene_info);
 
         printf("Loaded %d render objects\n", (int)loaded_gltfs.size());
+
+        num_loaded_scenes++;
     }
+
+    printf("$$$$$$$$$$$$$$$$$$$$$$$ Loaded %d scenes\n $$$$$$$$$$$$$$$$$$$$$\n", num_loaded_scenes);
 
     std::vector<const char *> render_asset_cstrs;
     for (size_t i = 0; i < render_asset_paths.size(); i++) {
