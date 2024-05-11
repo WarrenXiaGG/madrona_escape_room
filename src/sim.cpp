@@ -675,7 +675,7 @@ static void setupStepTasks(TaskGraphBuilder &builder,
             DoorObservation
         >>({reset_sys});
 
-    RenderingSystem::setupTasks(builder, {reset_sys});
+    // RenderingSystem::setupTasks(builder, {reset_sys});
 
 #ifdef MADRONA_GPU_MODE
     // Sort entities, this could be conditional on reset like the second
@@ -694,10 +694,17 @@ static void setupStepTasks(TaskGraphBuilder &builder,
 #endif
 }
 
+static void setupRenderTasks(TaskGraphBuilder &builder, 
+                             const Sim::Config &cfg)
+{
+    RenderingSystem::setupTasks(builder, {});
+}
+
 // Build the task graph
 void Sim::setupTasks(TaskGraphManager &taskgraph_mgr, const Config &cfg)
 {
     setupStepTasks(taskgraph_mgr.init(TaskGraphID::Step), cfg);
+    setupRenderTasks(taskgraph_mgr.init(TaskGraphID::Render), cfg);
 }
 
 Sim::Sim(Engine &ctx,

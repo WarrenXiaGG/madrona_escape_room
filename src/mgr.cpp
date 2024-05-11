@@ -178,6 +178,7 @@ struct Manager::CPUImpl final : Manager::Impl {
 struct Manager::CUDAImpl final : Manager::Impl {
     MWCudaExecutor gpuExec;
     MWCudaLaunchGraph stepGraph;
+    MWCudaLaunchGraph renderGraph;
 
     inline CUDAImpl(const Manager::Config &mgr_cfg,
                    PhysicsLoader &&phys_loader,
@@ -186,13 +187,15 @@ struct Manager::CUDAImpl final : Manager::Impl {
                    Optional<RenderGPUState> &&render_gpu_state,
                    Optional<render::RenderManager> &&render_mgr,
                    MWCudaExecutor &&gpu_exec,
-                   MWCudaLaunchGraph &&step_graph)
+                   MWCudaLaunchGraph &&step_graph,
+                   MWCudaLaunchGraph &&render_graph)
         : Impl(mgr_cfg, std::move(phys_loader),
                reset_buffer, action_buffer,
                std::move(render_gpu_state), std::move(render_mgr),
                mgr_cfg.raycastOutputResolution),
           gpuExec(std::move(gpu_exec)),
-          stepGraph(std::move(step_graph))
+          stepGraph(std::move(step_graph)),
+          renderGraph(std::move(render_graph))
     {}
 
     inline virtual ~CUDAImpl() final {}
@@ -200,6 +203,7 @@ struct Manager::CUDAImpl final : Manager::Impl {
     inline virtual void run()
     {
         gpuExec.run(stepGraph);
+        gpuExec.run(renderGraph);
     }
 
     virtual inline Tensor exportTensor(ExportID slot,
@@ -951,6 +955,8 @@ Manager::Impl * Manager::Impl::init(
             .numTaskGraphs = (uint32_t)TaskGraphID::NumTaskGraphs,
             .numExportedBuffers = (uint32_t)ExportID::NumExports, 
             .geometryData = &gpu_imported_assets,
+            .materials = {},
+            .textures = {},
             .raycastOutputResolution = raycast_output_resolution,
         }, {
             { GPU_HIDESEEK_SRC_LIST },
@@ -959,7 +965,10 @@ Manager::Impl * Manager::Impl::init(
         }, cu_ctx);
 
         MWCudaLaunchGraph step_graph = gpu_exec.buildLaunchGraph(
-                TaskGraphID::Step, !mgr_cfg.enableBatchRenderer);
+                TaskGraphID::Step, false);
+        MWCudaLaunchGraph render_graph = gpu_exec.buildLaunchGraph(
+                TaskGraphID::Render, !mgr_cfg.enableBatchRenderer,
+                "render_sort");
 
         printf("Combine postcompile\n");
         WorldReset *world_reset_buffer = 
@@ -976,7 +985,8 @@ Manager::Impl * Manager::Impl::init(
             std::move(render_gpu_state),
             std::move(render_mgr),
             std::move(gpu_exec),
-            std::move(step_graph)
+            std::move(step_graph),
+            std::move(render_graph)
         };
 #else
         FATAL("Madrona was not compiled with CUDA support");

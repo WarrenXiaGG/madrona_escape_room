@@ -54,6 +54,7 @@ struct ImportedInstance {
 
 enum class TaskGraphID : uint32_t {
     Step,
+    Render,
     NumTaskGraphs,
 };
 
