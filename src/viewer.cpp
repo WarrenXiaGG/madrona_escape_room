@@ -379,9 +379,9 @@ int main(int argc, char *argv[])
                             (j + (i + linear_image_idx * raycast_output_resolution) * raycast_output_resolution);
 
                         auto realColor = IM_COL32(
-                                raycasters[linear_idx + 0],
-                                raycasters[linear_idx + 1],
-                                raycasters[linear_idx + 2], 
+                                (uint8_t)raycasters[linear_idx + 0],
+                                (uint8_t)raycasters[linear_idx + 1],
+                                (uint8_t)raycasters[linear_idx + 2],
                                 255);
 
                         draw2->AddRectFilled(

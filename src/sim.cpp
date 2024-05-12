@@ -148,7 +148,7 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
     }
 }
 
-#define DYNAMIC_MOVEMENT
+//#define DYNAMIC_MOVEMENT
 
 // Translates discrete actions from the Action component to forces
 // used by the physics simulation.

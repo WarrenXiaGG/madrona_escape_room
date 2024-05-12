@@ -955,8 +955,8 @@ Manager::Impl * Manager::Impl::init(
             .numTaskGraphs = (uint32_t)TaskGraphID::NumTaskGraphs,
             .numExportedBuffers = (uint32_t)ExportID::NumExports, 
             .geometryData = &gpu_imported_assets,
-            .materials = {},
-            .textures = {},
+            .materials = imported_assets.materials,
+            .textures = imported_assets.texture,
             .raycastOutputResolution = raycast_output_resolution,
         }, {
             { GPU_HIDESEEK_SRC_LIST },
