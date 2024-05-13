@@ -32,6 +32,9 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
         simdjson::dom::element root = scene_parser.load(scene_path);
 
         string_view stage_name = root["stage_instance"]["template_name"];
+
+        std::cout << stage_name << std::endl;
+
         auto stage_path = root_path / stage_name;
         stage_path.concat(".stage_config.json");
 
@@ -41,6 +44,8 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
         string_view render_asset_name = stage_root["render_asset"];
         scene.stagePath = 
             stage_dir / render_asset_name;
+
+        std::cout << render_asset_name << std::endl;
 
         uint32_t front_idx = 0;
         auto front_obj = stage_root["front"];

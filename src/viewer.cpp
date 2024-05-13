@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     //WindowManager wm {WindowManager::Config{.enableRenderAPIValidation=true,.renderBackendSelect =
     //        render::APIBackendSelect::Auto}};
     WindowManager wm {};
-    WindowHandle window = wm.makeWindow("Escape Room", 1408, 1408);
+    WindowHandle window = wm.makeWindow("Escape Room", 1080, 720);
     printf("Here\n");
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
@@ -324,8 +324,8 @@ int main(int argc, char *argv[])
 
         printObs();
     }, [&]() {
-        uint32_t num_image_x = 16;
-        uint32_t num_image_y = 4;
+        uint32_t num_image_x = 1;
+        uint32_t num_image_y = 1;
 
         uint32_t num_images_total = num_image_x * num_image_y;
 
@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
 
         int vertOff = 70;
 
-        float pixScale = 3;
+        float pixScale = 1;
         int extentsX = (int)(pixScale * raycast_output_resolution);
         int extentsY = (int)(pixScale * raycast_output_resolution);
 

@@ -228,7 +228,9 @@ static imp::ImportedAssets loadScenes(
         Optional<render::RenderManager> &render_mgr,
         uint32_t first_unique_scene,
         uint32_t num_unique_scenes,
-        LoadResult &load_result)
+        LoadResult &load_result,
+        const std::string &green_grid_path,
+        const std::string &smile_path)
 {
     const char *cache_everything = getenv("MADRONA_CACHE_ALL_BVH");
 
@@ -433,12 +435,20 @@ static imp::ImportedAssets loadScenes(
         FATAL("Failed to load render assets: %s", import_err);
     }
 
+
+    // Push the additional textures
+    int32_t green_grid_tex_idx = render_assets->texture.size();
+    int32_t smile_tex_idx = green_grid_tex_idx + 1;
+
+    // render_assets->texture.push_back(imp::SourceTexture(green_grid_path.c_str()));
+    // render_assets->texture.push_back(imp::SourceTexture(smile_path.c_str()));
+
     auto materials = std::to_array<imp::SourceMaterial>({
         { render::rgb8ToFloat(191, 108, 10), -1, 0.8f, 0.2f },
         { math::Vector4{0.4f, 0.4f, 0.4f, 0.0f}, -1, 0.8f, 0.2f,},
-        { math::Vector4{1.f, 1.f, 1.f, 0.0f}, 1, 0.5f, 1.0f,},
+        { math::Vector4{1.f, 1.f, 1.f, 0.0f}, smile_tex_idx, 0.5f, 1.0f,},
         { render::rgb8ToFloat(230, 230, 230),   -1, 0.8f, 1.0f },
-        { math::Vector4{0.5f, 0.3f, 0.3f, 0.0f},  0, 0.8f, 0.2f,},
+        { math::Vector4{0.5f, 0.3f, 0.3f, 0.0f},  green_grid_tex_idx, 0.8f, 0.2f,},
         { render::rgb8ToFloat(230, 20, 20),   -1, 0.8f, 1.0f },
         { render::rgb8ToFloat(230, 230, 20),   -1, 0.8f, 1.0f },
         { render::rgb8ToFloat(230, 230, 230),   -1, 0.8f, 1.0f },
@@ -455,6 +465,7 @@ static imp::ImportedAssets loadScenes(
     render_assets->objects[(CountT)SimObjectDefault::Button].meshes[0].materialIDX = 6;
     render_assets->objects[(CountT)SimObjectDefault::Plane].meshes[0].materialIDX = 4;
 
+#if 0
     for (int obj_i = (int)SimObjectDefault::NumObjects;
             obj_i < render_assets->objects.size(); ++obj_i) {
         auto *obj_data = &render_assets->objects[obj_i];
@@ -463,16 +474,14 @@ static imp::ImportedAssets loadScenes(
             obj_data->meshes[mesh_i].materialIDX = habitat_material;
         }
     }
+#endif
 
     if (render_mgr.has_value()) {
         printf("Rasterizer is loading assets\n");
 
-        render_mgr->loadObjects(render_assets->objects, materials, {
-            { (std::filesystem::path(DATA_DIR) /
-               "green_grid.png").string().c_str() },
-            { (std::filesystem::path(DATA_DIR) /
-               "smile.png").string().c_str() },
-        });
+        render_mgr->loadObjects(render_assets->objects, 
+                render_assets->materials, 
+                render_assets->texture);
 
         render_mgr->configureLighting({
             { true, math::Vector3{1.0f, -1.0f, -0.05f}, math::Vector3{1.0f, 1.0f, 1.0f} }
@@ -682,7 +691,7 @@ static imp::ImportedAssets loadRenderObjects(
     }
 
     if (render_mgr.has_value()) {
-        render_mgr->loadObjects(render_assets->objects, materials, {
+        render_mgr->loadObjects(render_assets->objects, render_assets->materials, {
             { (std::filesystem::path(DATA_DIR) /
                "green_grid.png").string().c_str() },
             { (std::filesystem::path(DATA_DIR) /
@@ -881,7 +890,7 @@ Manager::Impl * Manager::Impl::init(
 
         sim_cfg.mergeAll = false;
 
-         const char *first_unique_scene_str = getenv("HSSD_FIRST_SCENE");
+        const char *first_unique_scene_str = getenv("HSSD_FIRST_SCENE");
         const char *num_unique_scene_str = getenv("HSSD_NUM_SCENES");
 
         assert(first_unique_scene_str && num_unique_scene_str);
@@ -890,10 +899,17 @@ Manager::Impl * Manager::Impl::init(
 
         LoadResult load_result = {};
 
+        std::string green_grid_path = (std::filesystem::path(DATA_DIR) /
+                                       "green_grid.png").string();
+
+        std::string smile_path = (std::filesystem::path(DATA_DIR) /
+                                  "smile.png").string();
+
         auto imported_assets = loadScenes(
                 render_mgr, std::stoi(first_unique_scene_str),
                 std::stoi(num_unique_scene_str),
-                load_result);
+                load_result,
+                green_grid_path, smile_path);
 
         auto gpu_imported_assets_opt =
             imp::ImportedAssets::makeGPUData(imported_assets);
@@ -958,6 +974,7 @@ Manager::Impl * Manager::Impl::init(
             .materials = imported_assets.materials,
             .textures = imported_assets.texture,
             .raycastOutputResolution = raycast_output_resolution,
+            .nearSphere = 3.f
         }, {
             { GPU_HIDESEEK_SRC_LIST },
             { GPU_HIDESEEK_COMPILE_FLAGS },
