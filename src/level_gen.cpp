@@ -68,7 +68,7 @@ static void registerRigidBodyEntity(
 void createPersistentEntities(Engine &ctx)
 {
 #if 1
-    printf("Num imported instances: %d\n", (int)ctx.data().numImportedInstances);
+    // printf("Num imported instances: %d\n", (int)ctx.data().numImportedInstances);
 
 #if defined(FLOORPLANNER)
     if (ctx.data().mergeAll) {

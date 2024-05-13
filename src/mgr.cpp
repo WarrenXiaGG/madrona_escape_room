@@ -235,7 +235,7 @@ static imp::ImportedAssets loadScenes(
     const char *cache_everything = getenv("MADRONA_CACHE_ALL_BVH");
 
     std::string hssd_scenes = std::filesystem::path(DATA_DIR) /
-        "hssd-hab/scenes-uncluttered";
+        "hssd-hab/scenes";
     std::string procthor_scenes = std::filesystem::path(DATA_DIR) /
         "ai2thor-hab/ai2thor-hab/configs/scenes/ProcTHOR/5";
     std::string procthor_root = std::filesystem::path(DATA_DIR) /
