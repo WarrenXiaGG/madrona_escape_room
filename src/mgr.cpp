@@ -861,28 +861,48 @@ static std::vector<PathTransform> parsePathsFile(
     float height_offset = 4.f;
     float scale = 10.f;
 
-    for (int i = 0; i < num_transforms; ++i) {
+    // for (int i = 0; i < num_transforms; ++i) {
+    for (int i = 0; i < 1; ++i) {
         math::Vector3 position;
         math::Quat rotation;
 
+#if 0
         fread(&position.x, sizeof(float), 1, ptr);
         fread(&position.y, sizeof(float), 1, ptr);
         fread(&position.z, sizeof(float), 1, ptr);
 
         fread(&rotation.w, sizeof(float), 1, ptr);
         fread(&rotation.x, sizeof(float), 1, ptr);
-        fread(&rotation.y, sizeof(float), 1, ptr);
         fread(&rotation.z, sizeof(float), 1, ptr);
+        fread(&rotation.y, sizeof(float), 1, ptr);
+#endif
+
+
+#if 1
+        position.x = 23.660238;
+        position.y = 0.67499983;
+        position.z = 16.32168;
+
+        rotation.w = -0.965925812721252;
+        rotation.x = 0;
+        rotation.z = -0.258819311857224;
+        rotation.y = 0;
+
+        rotation = rotation.normalize();
+#endif
+
 
         position = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
             rotateVec(Vector3{ position.x, position.y, 
-                               position.z + height_offset });
+                               position.z });
 
         position.x *= scale;
         position.y *= scale;
         position.z *= scale;
 
-        // rotation = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }) * rotation;
+        position.z += height_offset;
+
+        // rotation = Quat::angleAxis(-pi_d2, { 1.f, 0.f, 0.f }) * rotation;
 
         path_transforms.push_back({
             position, rotation

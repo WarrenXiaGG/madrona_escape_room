@@ -228,7 +228,7 @@ void createPersistentEntities(Engine &ctx)
 
         ctx.get<ObjectID>(agent) = ObjectID { (int32_t)SimObjectDefault::Agent };
 
-        ctx.get<Scale>(agent) = Diag3x3 { 10, 10, 10 };
+        ctx.get<Scale>(agent) = Diag3x3 { 30, 30, 30 };
         ctx.get<GrabState>(agent).constraintEntity = Entity::none();
         ctx.get<EntityType>(agent) = EntityType::Agent;
 
