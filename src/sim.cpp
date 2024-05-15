@@ -152,7 +152,7 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
 }
 
 // 0 is no movement, 1 is circle rotations, 2 is read path transforms
-#define DYNAMIC_MOVEMENT 0
+#define DYNAMIC_MOVEMENT 2
 
 // Translates discrete actions from the Action component to forces
 // used by the physics simulation.
@@ -203,6 +203,11 @@ inline void movementSystem(Engine &ctx,
     ctx.get<Position>(cam.camera) = transform.position;
     ctx.get<Rotation>(cam.camera) = transform.rotation;
     rot = transform.rotation;
+    pos = transform.position;
+
+    printf("%f %f %f\n", transform.position.x,
+                         transform.position.y,
+                         transform.position.z);
 #else
     ctx.get<Position>(cam.camera) = Vector3{ pos.x,pos.y,pos.z};
     ctx.get<Rotation>(cam.camera) = eulerToQuat(cam.yaw, cam.pitch);

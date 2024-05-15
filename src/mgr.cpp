@@ -296,11 +296,14 @@ static imp::ImportedAssets loadScenes(
     std::shuffle(random_indices.begin(), random_indices.end(), rng);
 
     // Get all the asset paths and push unique scene infos
-    for (int i = 0; i < num_unique_scenes; ++i) {
+    for (int i = 0; i < 1 /* num_unique_scenes */; ++i) {
         int random_index = random_indices[i];
         printf("################ Loading scene with index %d #######################\n", random_index);
 
-        std::string scene_path = scene_paths[random_index];
+        // std::string scene_path = scene_paths[random_index];
+        std::string scene_path = std::filesystem::path(DATA_DIR) /
+            "hssd-hab/scenes-uncluttered/102343992.scene_instance.json";
+
         auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
 
         //uncomment this for procthor
@@ -320,6 +323,7 @@ static imp::ImportedAssets loadScenes(
         if(loaded_scene.stageFront[0] == -1){
             stage_angle = -pi/2;
         }
+
         Quat stage_rot = Quat::angleAxis(pi_d2,{ 1.f, 0.f, 0.f }) *
                         Quat::angleAxis(stage_angle,{0,1,0});
 
@@ -845,15 +849,55 @@ struct HSSDPath {
 static std::vector<PathTransform> parsePathsFile(
         const std::string &file_path)
 {
-    // ... do parsing
+    std::vector<PathTransform> path_transforms;
 
-    return {};
+    // ... do parsing
+    FILE *ptr = fopen(file_path.c_str(), "rb");
+    assert(ptr);
+
+    uint32_t num_transforms;
+    fread(&num_transforms, sizeof(uint32_t), 1, ptr);
+
+    float height_offset = 4.f;
+    float scale = 10.f;
+
+    for (int i = 0; i < num_transforms; ++i) {
+        math::Vector3 position;
+        math::Quat rotation;
+
+        fread(&position.x, sizeof(float), 1, ptr);
+        fread(&position.y, sizeof(float), 1, ptr);
+        fread(&position.z, sizeof(float), 1, ptr);
+
+        fread(&rotation.w, sizeof(float), 1, ptr);
+        fread(&rotation.x, sizeof(float), 1, ptr);
+        fread(&rotation.y, sizeof(float), 1, ptr);
+        fread(&rotation.z, sizeof(float), 1, ptr);
+
+        position = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
+            rotateVec(Vector3{ position.x, position.y, 
+                               position.z + height_offset });
+
+        position.x *= scale;
+        position.y *= scale;
+        position.z *= scale;
+
+        // rotation = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }) * rotation;
+
+        path_transforms.push_back({
+            position, rotation
+        });
+    }
+
+    // exit(0);
+
+    return path_transforms;
 }
 
 static PathTransform *createHSSDPaths(uint32_t *num_transforms)
 {
     // TODO: Set this!
-    std::string paths_file = "";
+    std::string paths_file = "../pathout.pathout";
 
     auto path_transforms = parsePathsFile(paths_file);
 
