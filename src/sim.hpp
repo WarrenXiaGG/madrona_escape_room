@@ -68,6 +68,11 @@ struct UniqueScene {
     madrona::math::Vector3 center;
 };
 
+struct PathTransform {
+    madrona::math::Vector3 position;
+    madrona::math::Quat rotation;
+};
+
 // The Sim class encapsulates the per-world state of the simulation.
 // Sim is always available by calling ctx.data() given a reference
 // to the Engine / Context object that is passed to each ECS system.
@@ -93,6 +98,9 @@ struct Sim : public madrona::WorldBase {
         uint32_t numWorlds;
 
         bool mergeAll;
+
+        uint32_t numTransforms;
+        PathTransform *pathTransforms;
     };
 
     // This class would allow per-world custom data to be passed into
@@ -153,6 +161,11 @@ struct Sim : public madrona::WorldBase {
     madrona::math::Vector2 worldCenter;
 
     bool mergeAll;
+
+    uint32_t numTransforms;
+    PathTransform *pathTransforms;
+
+    uint64_t currentTransform;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {

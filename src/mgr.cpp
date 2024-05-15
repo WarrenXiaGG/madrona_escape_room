@@ -837,6 +837,39 @@ static void loadPhysicsObjects(PhysicsLoader &loader)
     free(rigid_body_data);
 }
 
+struct HSSDPath {
+    std::vector<PathTransform> transforms;
+    PathTransform *gpuTransforms;
+};
+
+static std::vector<PathTransform> parsePathsFile(
+        const std::string &file_path)
+{
+    // ... do parsing
+
+    return {};
+}
+
+static PathTransform *createHSSDPaths(uint32_t *num_transforms)
+{
+    // TODO: Set this!
+    std::string paths_file = "";
+
+    auto path_transforms = parsePathsFile(paths_file);
+
+    PathTransform *transforms = (PathTransform *)cu::allocGPU(
+            sizeof(PathTransform) * path_transforms.size());
+
+    REQ_CUDA(cudaMemcpy(transforms, 
+                        path_transforms.data(),
+                        sizeof(PathTransform) * path_transforms.size(),
+                        cudaMemcpyHostToDevice));
+
+    *num_transforms = (uint32_t)path_transforms.size();
+
+    return transforms;
+}
+
 Manager::Impl * Manager::Impl::init(
     const Manager::Config &mgr_cfg)
 {
@@ -914,6 +947,9 @@ Manager::Impl * Manager::Impl::init(
         auto gpu_imported_assets_opt =
             imp::ImportedAssets::makeGPUData(imported_assets);
 
+        uint32_t num_transforms = 0;
+        PathTransform *gpu_transforms = createHSSDPaths(&num_transforms);
+
         assert(gpu_imported_assets_opt.has_value());
 
         gpu_imported_assets = std::move(*gpu_imported_assets_opt);
@@ -930,6 +966,9 @@ Manager::Impl * Manager::Impl::init(
                 sizeof(UniqueScene) * load_result.uniqueSceneInfos.size());
 
         sim_cfg.numWorlds = mgr_cfg.numWorlds;
+
+        sim_cfg.numTransforms = num_transforms;
+        sim_cfg.pathTransforms = gpu_transforms;
 
         REQ_CUDA(cudaMemcpy(sim_cfg.importedInstances, 
                     load_result.importedInstances.data(),

@@ -127,6 +127,9 @@ static inline void initWorld(Engine &ctx)
 // If a reset is needed, cleanup the existing world and generate a new one.
 inline void resetSystem(Engine &ctx, WorldReset &reset)
 {
+    ctx.data().currentTransform = (ctx.data().currentTransform + 1) %
+        ctx.data().numTransforms;
+
     ctx.data().currentTime += 0.1f;
 
     int32_t should_reset = reset.reset;
@@ -148,7 +151,8 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
     }
 }
 
-#define DYNAMIC_MOVEMENT
+// 0 is no movement, 1 is circle rotations, 2 is read path transforms
+#define DYNAMIC_MOVEMENT 0
 
 // Translates discrete actions from the Action component to forces
 // used by the physics simulation.
@@ -171,7 +175,7 @@ inline void movementSystem(Engine &ctx,
     newVelocity.y = walkVec.y;
     newVelocity.z = action.z - 1;
 
-#if defined(DYNAMIC_MOVEMENT)
+#if DYNAMIC_MOVEMENT == 1
     cam.yaw += 0.15f;
 #endif
 
@@ -184,20 +188,25 @@ inline void movementSystem(Engine &ctx,
 
     float entity_offset = (float)e.id;
 
-#if defined(DYNAMIC_MOVEMENT)
+#if DYNAMIC_MOVEMENT == 0
+#elif DYNAMIC_MOVEMENT == 1
     pos = Vector3{ 20.f*std::cosf(ctx.data().currentTime + entity_offset), 
         20.f*std::sinf(ctx.data().currentTime + entity_offset), 22.f };
     pos.x += ctx.data().worldCenter.x;
     pos.y += ctx.data().worldCenter.y;
 #endif
 
+#if DYNAMIC_MOVEMENT == 2
+    auto &transform = ctx.data().pathTransforms[
+        ctx.data().currentTransform];
+
+    ctx.get<Position>(cam.camera) = transform.position;
+    ctx.get<Rotation>(cam.camera) = transform.rotation;
+    rot = transform.rotation;
+#else
     ctx.get<Position>(cam.camera) = Vector3{ pos.x,pos.y,pos.z};
     ctx.get<Rotation>(cam.camera) = eulerToQuat(cam.yaw, cam.pitch);
     rot = eulerToQuat(cam.yaw, 0);
-
-#if 0
-    printf("Position: %f %f %f yaw=%f pitch=%f\n", pos.x, pos.y, pos.z,
-            cam.yaw, cam.pitch);
 #endif
 }
 
@@ -753,6 +762,11 @@ Sim::Sim(Engine &ctx,
     initWorld(ctx);
 
     currentTime = 0.f;
+
+    numTransforms = cfg.numTransforms;
+    pathTransforms = cfg.pathTransforms;
+
+    currentTransform = 0;
 }
 
 // This declaration is needed for the GPU backend in order to generate the
