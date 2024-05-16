@@ -891,6 +891,17 @@ static std::vector<PathTransform> parsePathsFile(
         rotation = rotation.normalize();
 #endif
 
+#if 0
+        position.x = 18.296072f;
+        position.y = 0.67499983;
+        position.z = -7.5005894;
+
+        rotation.w = 0.909961581230164f;
+        rotation.x = 0.f;
+        rotation.z = 0.414692580699921f; 
+        rotation.y = 0.f;
+#endif
+
 
         position = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
             rotateVec(Vector3{ position.x, position.y, 
@@ -1085,7 +1096,7 @@ Manager::Impl * Manager::Impl::init(
         }, cu_ctx);
 
         MWCudaLaunchGraph step_graph = gpu_exec.buildLaunchGraph(
-                TaskGraphID::Step, false);
+                TaskGraphID::Step, false, "step");
         MWCudaLaunchGraph render_graph = gpu_exec.buildLaunchGraph(
                 TaskGraphID::Render, !mgr_cfg.enableBatchRenderer,
                 "render_sort");

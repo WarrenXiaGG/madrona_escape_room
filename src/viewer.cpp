@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
 
         int vertOff = 70;
 
-        float pixScale = 1;
+        float pixScale = 3;
         int extentsX = (int)(pixScale * raycast_output_resolution);
         int extentsY = (int)(pixScale * raycast_output_resolution);
 
