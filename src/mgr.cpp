@@ -997,7 +997,7 @@ Manager::Impl * Manager::Impl::init(
         }, cu_ctx);
 
         MWCudaLaunchGraph step_graph = gpu_exec.buildLaunchGraph(
-                TaskGraphID::Step, false);
+                TaskGraphID::Step, false, "step");
         MWCudaLaunchGraph render_graph = gpu_exec.buildLaunchGraph(
                 TaskGraphID::Render, !mgr_cfg.enableBatchRenderer,
                 "render_sort");
