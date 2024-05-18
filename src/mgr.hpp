@@ -69,6 +69,8 @@ public:
 
     madrona::render::RenderManager & getRenderManager();
 
+    uint32_t numAgents;
+
 private:
     struct Impl;
     struct CPUImpl;

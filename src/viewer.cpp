@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
 
         uint32_t bytes_per_image = 3 * raycast_output_resolution * raycast_output_resolution;
 
-        uint32_t image_idx = viewer.getCurrentWorldID() * consts::numAgents + 
+        uint32_t image_idx = viewer.getCurrentWorldID() * consts::maxAgents + 
             std::max(viewer.getCurrentViewID(), (CountT)0);
 
         uint32_t base_image_idx = num_images_total * (image_idx / num_images_total);

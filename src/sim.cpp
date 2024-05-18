@@ -131,7 +131,7 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
 
     int32_t should_reset = reset.reset;
     if (ctx.data().autoReset) {
-        for (CountT i = 0; i < consts::numAgents; i++) {
+        for (CountT i = 0; i < ctx.data().numAgents; i++) {
             Entity agent = ctx.data().agents[i];
             Done done = ctx.get<Done>(agent);
             if (done.v) {
@@ -427,7 +427,7 @@ inline void collectObservationsSystem(Engine &ctx,
     Quat to_view = rot.inv();
 
 #pragma unroll
-    for (CountT i = 0; i < consts::numAgents - 1; i++) {
+    for (CountT i = 0; i < ctx.data().numAgents - 1; i++) {
         Entity other = other_agents.e[i];
 
         Vector3 other_pos = ctx.get<Position>(other);
@@ -569,7 +569,7 @@ inline void bonusRewardSystem(Engine &ctx,
                               Reward &reward)
 {
     bool partners_close = true;
-    for (CountT i = 0; i < consts::numAgents - 1; i++) {
+    for (CountT i = 0; i < ctx.data().numAgents - 1; i++) {
         Entity other = others.e[i];
         Progress other_progress = ctx.get<Progress>(other);
 
@@ -712,10 +712,12 @@ Sim::Sim(Engine &ctx,
          const WorldInit &)
     : WorldBase(ctx)
 {
+    numAgents = cfg.numAgents;
+
     // Currently the physics system needs an upper bound on the number of
     // entities that will be stored in the BVH. We plan to fix this in
     // a future release.
-    constexpr CountT max_total_entities = consts::numAgents +
+    constexpr CountT max_total_entities = consts::maxAgents +
         consts::numRooms * (consts::maxEntitiesPerRoom + 3) +
         4; // side walls + floor
 

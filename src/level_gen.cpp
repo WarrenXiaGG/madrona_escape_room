@@ -208,7 +208,7 @@ void createPersistentEntities(Engine &ctx)
     // Create agent entities. Note that this leaves a lot of components
     // uninitialized, these will be set during world generation, which is
     // called for every episode.
-    for (CountT i = 0; i < consts::numAgents; ++i) {
+    for (CountT i = 0; i < ctx.data().numAgents; ++i) {
         Entity agent = ctx.data().agents[i] =
             ctx.makeRenderableEntity<Agent>();
 
@@ -242,12 +242,12 @@ void createPersistentEntities(Engine &ctx)
 
     // Populate OtherAgents component, which maintains a reference to the
     // other agents in the world for each agent.
-    for (CountT i = 0; i < consts::numAgents; i++) {
+    for (CountT i = 0; i < ctx.data().numAgents; i++) {
         Entity cur_agent = ctx.data().agents[i];
 
         OtherAgents &other_agents = ctx.get<OtherAgents>(cur_agent);
         CountT out_idx = 0;
-        for (CountT j = 0; j < consts::numAgents; j++) {
+        for (CountT j = 0; j < ctx.data().numAgents; j++) {
             if (i == j) {
                 continue;
             }
@@ -280,7 +280,7 @@ static void resetPersistentEntities(Engine &ctx)
          1.141593f, -2.641593
      };
 
-     for (CountT i = 0; i < consts::numAgents; i++) {
+     for (CountT i = 0; i < ctx.data().numAgents; i++) {
          Entity agent_entity = ctx.data().agents[i];
          //registerRigidBodyEntity(ctx, agent_entity, SimObject::Agent);
 

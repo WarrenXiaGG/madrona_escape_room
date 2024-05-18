@@ -92,6 +92,8 @@ struct Sim : public madrona::WorldBase {
 
         uint32_t numWorlds;
 
+        uint32_t numAgents;
+
         bool mergeAll;
     };
 
@@ -141,7 +143,8 @@ struct Sim : public madrona::WorldBase {
 
     // Agent entity references. This entities live across all episodes
     // and are just reset to the start of the level on reset.
-    Entity agents[consts::numAgents];
+    uint32_t numAgents;
+    Entity agents[consts::maxAgents];
 
     ImportedInstance *importedInstances;
     uint32_t numImportedInstances;

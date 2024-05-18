@@ -93,7 +93,7 @@ static inline Optional<render::RenderManager> initRenderManager(
         .agentViewWidth = mgr_cfg.batchRenderViewWidth,
         .agentViewHeight = mgr_cfg.batchRenderViewHeight,
         .numWorlds = mgr_cfg.numWorlds,
-        .maxViewsPerWorld = consts::numAgents,
+        .maxViewsPerWorld = consts::maxAgents,
         .maxInstancesPerWorld = 1024,
         .execMode = mgr_cfg.execMode,
         .voxelCfg = {},
@@ -859,6 +859,14 @@ Manager::Impl * Manager::Impl::init(
     sim_cfg.autoReset = mgr_cfg.autoReset;
     sim_cfg.initRandKey = rand::initKey(mgr_cfg.randSeed);
 
+    const char *num_agents_str = getenv("HIDESEEK_NUM_AGENTS");
+    if (num_agents_str) {
+        uint32_t num_agents = std::stoi(num_agents_str);
+        sim_cfg.numAgents = num_agents;
+    } else {
+        sim_cfg.numAgents = 1;
+    }
+
     std::array<std::string,1> collision_asset_paths;
     collision_asset_paths[0] =
         (std::filesystem::path(DATA_DIR) / "funky2.obj").string();
@@ -1137,6 +1145,13 @@ Manager::Manager(const Config &cfg)
     //
     // This will be improved in the future with support for multiple task
     // graphs, allowing a small task graph to be executed after initialization.
+    const char *num_agents_str = getenv("HIDESEEK_NUM_AGENTS");
+    if (num_agents_str) {
+        uint32_t num_agents = std::stoi(num_agents_str);
+        numAgents = num_agents;
+    } else {
+        numAgents = 1;
+    }
     
     for (int32_t i = 0; i < (int32_t)cfg.numWorlds; i++) {
         triggerReset(i);
@@ -1191,7 +1206,7 @@ Tensor Manager::actionTensor() const
     return impl_->exportTensor(ExportID::Action, TensorElementType::Int32,
         {
             impl_->cfg.numWorlds,
-            consts::numAgents,
+            numAgents,
             4,
         });
 }
@@ -1201,7 +1216,7 @@ Tensor Manager::rewardTensor() const
     return impl_->exportTensor(ExportID::Reward, TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
-                                   consts::numAgents,
+                                   numAgents,
                                    1,
                                });
 }
@@ -1211,7 +1226,7 @@ Tensor Manager::doneTensor() const
     return impl_->exportTensor(ExportID::Done, TensorElementType::Int32,
                                {
                                    impl_->cfg.numWorlds,
-                                   consts::numAgents,
+                                   numAgents,
                                    1,
                                });
 }
@@ -1222,7 +1237,7 @@ Tensor Manager::selfObservationTensor() const
                                TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
-                                   consts::numAgents,
+                                   numAgents,
                                    8,
                                });
 }
@@ -1233,8 +1248,8 @@ Tensor Manager::partnerObservationsTensor() const
                                TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
-                                   consts::numAgents,
-                                   consts::numAgents - 1,
+                                   numAgents,
+                                   numAgents - 1,
                                    3,
                                });
 }
@@ -1245,7 +1260,7 @@ Tensor Manager::roomEntityObservationsTensor() const
                                TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
-                                   consts::numAgents,
+                                   numAgents,
                                    consts::maxEntitiesPerRoom,
                                    3,
                                });
@@ -1257,7 +1272,7 @@ Tensor Manager::doorObservationTensor() const
                                TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
-                                   consts::numAgents,
+                                   numAgents,
                                    3,
                                });
 }
@@ -1267,7 +1282,7 @@ Tensor Manager::lidarTensor() const
     return impl_->exportTensor(ExportID::Lidar, TensorElementType::Float32,
                                {
                                    impl_->cfg.numWorlds,
-                                   consts::numAgents,
+                                   numAgents,
                                    consts::numLidarSamples,
                                    2,
                                });
@@ -1279,7 +1294,7 @@ Tensor Manager::stepsRemainingTensor() const
                                TensorElementType::Int32,
                                {
                                    impl_->cfg.numWorlds,
-                                   consts::numAgents,
+                                   numAgents,
                                    1,
                                });
 }
@@ -1290,7 +1305,7 @@ Tensor Manager::rgbTensor() const
 
     return Tensor((void*)rgb_ptr, TensorElementType::UInt8, {
         impl_->cfg.numWorlds,
-        consts::numAgents,
+        numAgents,
         impl_->cfg.batchRenderViewHeight,
         impl_->cfg.batchRenderViewWidth,
         4,
@@ -1303,7 +1318,7 @@ Tensor Manager::depthTensor() const
 
     return Tensor((void *)depth_ptr, TensorElementType::Float32, {
         impl_->cfg.numWorlds,
-        consts::numAgents,
+        numAgents,
         impl_->cfg.batchRenderViewHeight,
         impl_->cfg.batchRenderViewWidth,
         1,
@@ -1317,7 +1332,7 @@ Tensor Manager::raycastTensor() const
     return impl_->exportTensor(ExportID::Raycast,
                                TensorElementType::UInt8,
                                {
-                                   impl_->cfg.numWorlds*consts::numAgents,
+                                   impl_->cfg.numWorlds*numAgents,
                                    pixels_per_view * 3,
                                });
 }
@@ -1365,7 +1380,7 @@ void Manager::setAction(int32_t world_idx,
     };
 
     auto *action_ptr = impl_->agentActionsBuffer +
-        world_idx * consts::numAgents + agent_idx;
+        world_idx * numAgents + agent_idx;
 
     if (impl_->cfg.execMode == ExecMode::CUDA) {
 #ifdef MADRONA_CUDA_SUPPORT
