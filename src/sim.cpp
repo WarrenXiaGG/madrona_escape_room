@@ -113,9 +113,6 @@ static inline void cleanupWorld(Engine &ctx)
 static inline void initWorld(Engine &ctx)
 {
     // Assign a new episode ID
-    ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
-        ctx.data().curWorldEpisode++, (uint32_t)ctx.worldID().idx));
-
     // Defined in src/level_gen.hpp / src/level_gen.cpp
     generateWorld(ctx);
 }
@@ -730,11 +727,12 @@ Sim::Sim(Engine &ctx,
         consts::numRooms * (consts::maxEntitiesPerRoom + 3) +
         4; // side walls + floor
 
+    ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
+        ctx.data().curWorldEpisode++, (uint32_t)ctx.worldID().idx));
+
     mergeAll = cfg.mergeAll;
 
-    uint32_t current_world_id = ctx.worldID().idx;
-    uint32_t num_worlds_per_scene = cfg.numWorlds / cfg.numUniqueScenes;
-    uint32_t current_scene = current_world_id / num_worlds_per_scene;
+    uint32_t current_scene = ctx.data().rng.sampleI32(0, cfg.numUniqueScenes);
 
     UniqueScene *unique_scene = &cfg.uniqueScenes[current_scene];
 
