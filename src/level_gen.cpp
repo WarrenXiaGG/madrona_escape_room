@@ -210,7 +210,7 @@ void createPersistentEntities(Engine &ctx)
     // called for every episode.
     for (CountT i = 0; i < ctx.data().numAgents; ++i) {
         Entity agent = ctx.data().agents[i] =
-            ctx.makeRenderableEntity<Agent>();
+            ctx.makeEntity<Agent>();
 
 #if defined(FLOORPLANNER)
         auto camera = ctx.makeEntity<DetatchedCamera>();

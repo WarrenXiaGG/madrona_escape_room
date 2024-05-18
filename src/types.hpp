@@ -242,10 +242,7 @@ namespace madEscape {
 
             // Visualization: In addition to the fly camera, src/viewer.cpp can
             // view the scene from the perspective of entities with this component
-            AgentCamera,
-            // All entities with the Renderable component will be drawn by the
-            // viewer and batch renderer
-            madrona::render::Renderable
+            AgentCamera
     > {
     };
 
