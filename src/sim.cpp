@@ -171,8 +171,14 @@ inline void movementSystem(Engine &ctx,
     newVelocity.y = walkVec.y;
     newVelocity.z = action.z - 1;
 
+    float entity_offset = (float)e.id;
+
+    float range = 5.0f;
+    float random_thing =  ctx.data().rng.sampleUniform() * range - range / 2.f;
+
 #if defined(DYNAMIC_MOVEMENT)
     cam.yaw += 0.15f;
+    cam.pitch = 0.1f*std::sinf(random_thing + ctx.data().currentTime + entity_offset);
 #endif
 
     cam.yaw += (action.rot-1)*consts::sensitivity;
@@ -182,11 +188,14 @@ inline void movementSystem(Engine &ctx,
     cam.pitch = std::clamp(cam.pitch,-math::pi_d2,math::pi_d2);
     pos += newVelocity;
 
-    float entity_offset = (float)e.id;
 
 #if defined(DYNAMIC_MOVEMENT)
-    pos = Vector3{ 20.f*std::cosf(ctx.data().currentTime + entity_offset), 
-        20.f*std::sinf(ctx.data().currentTime + entity_offset), 22.f };
+    pos = Vector3{ 
+        20.f*std::cosf(random_thing + ctx.data().currentTime + entity_offset), 
+        20.f*std::sinf(random_thing + ctx.data().currentTime + entity_offset),
+        22.f + std::sinf(random_thing + ctx.data().currentTime + entity_offset) * 3.0f
+    };
+
     pos.x += ctx.data().worldCenter.x;
     pos.y += ctx.data().worldCenter.y;
 #endif

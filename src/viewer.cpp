@@ -363,6 +363,11 @@ int main(int argc, char *argv[])
         ImVec2 windowPos = ImGui::GetWindowPos();
         char *raycasters = raycast_tensor;
 
+        for (int i = 0; i < 100; ++i) {
+            printf("%u ", (uint8_t)raycasters[i]);
+        }
+        printf("\n");
+
         int vertOff = 70;
 
         float pixScale = 1;

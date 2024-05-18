@@ -7,6 +7,7 @@
 #include <fstream>
 #include <random>
 
+#include <stb_image_write.h>
 #include <madrona/window.hpp>
 #include <madrona/heap_array.hpp>
 #include <madrona/render/render_mgr.hpp>
@@ -23,6 +24,20 @@ using namespace madrona;
     std::ofstream f("/tmp/actions", std::ios::binary);
     f.write((char *)world_base,
             sizeof(uint32_t) * total_num_steps * 2 * 3);
+}
+
+void transposeImage(char *output, 
+                    const char *input,
+                    uint32_t res,
+                    uint32_t comp)
+{
+    for (uint32_t y = 0; y < res; ++y) {
+        for (uint32_t x = 0; x < res; ++x) {
+            output[3*(y + x * res) + 0] = input[3*(x + y * res) + 0];
+            output[3*(y + x * res) + 1] = input[3*(x + y * res) + 1];
+            output[3*(y + x * res) + 2] = input[3*(x + y * res) + 2];
+        }
+    }
 }
 
 int main(int argc, char *argv[])
@@ -111,6 +126,65 @@ int main(int argc, char *argv[])
             }
         }
         mgr.step();
+
+        uint32_t num_images_total = num_worlds;
+
+        unsigned char* print_ptr;
+            int64_t num_bytes = 3 * raycast_output_resolution * raycast_output_resolution * num_images_total;
+            print_ptr = (unsigned char*)cu::allocReadback(num_bytes);
+
+        char *raycast_tensor = (char *)(mgr.raycastTensor().devicePtr());
+
+        uint32_t bytes_per_image = 3 * raycast_output_resolution * raycast_output_resolution;
+        uint32_t row_stride_bytes = 3 * raycast_output_resolution;
+
+        uint32_t image_idx = 0;
+
+        uint32_t base_image_idx = num_images_total * (image_idx / num_images_total);
+
+        raycast_tensor += image_idx * bytes_per_image;
+
+        if(exec_mode == ExecMode::CUDA){
+            cudaMemcpy(print_ptr, raycast_tensor,
+                    num_bytes,
+                    cudaMemcpyDeviceToHost);
+            raycast_tensor = (char *)print_ptr;
+        }
+
+        char *tmp_image_memory = (char *)malloc(bytes_per_image);
+
+        char *image_memory = (char *)malloc(bytes_per_image * num_images_total);
+
+        uint32_t num_images_y = 10;
+        uint32_t num_images_x = num_images_total / num_images_y;
+
+        uint32_t output_num_pixels_x = num_images_x * raycast_output_resolution;
+
+        for (uint32_t image_y = 0; image_y < num_images_y; ++image_y) {
+            for (uint32_t image_x = 0; image_x < num_images_x; ++image_x) {
+                uint32_t image_idx = image_x + image_y * num_images_x;
+
+                const char *input_image = raycast_tensor + image_idx * bytes_per_image;
+
+                transposeImage(tmp_image_memory, input_image, raycast_output_resolution, 3);
+
+                for (uint32_t row_idx = 0; row_idx < raycast_output_resolution; ++row_idx) {
+                    const char *input_row = tmp_image_memory + row_idx * row_stride_bytes;
+
+                    uint32_t output_pixel_x = image_x * raycast_output_resolution;
+                    uint32_t output_pixel_y = image_y * raycast_output_resolution + row_idx;
+                    char *output_row = image_memory + 3 * (output_pixel_x + output_pixel_y * output_num_pixels_x);
+
+                    memcpy(output_row, input_row, 3 * raycast_output_resolution);
+                }
+            }
+        }
+
+        std::string file_name = std::string("out") + std::to_string(i) + ".bmp";
+        stbi_write_bmp(file_name.c_str(), raycast_output_resolution * num_images_x, num_images_y * raycast_output_resolution,
+                      3, image_memory);
+
+        free(image_memory);
     }
 
     auto end = std::chrono::system_clock::now();
