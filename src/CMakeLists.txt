@@ -1,3 +1,5 @@
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g -O0")
+
 set(SIMULATOR_SRCS
     types.hpp
     sim.hpp sim.inl sim.cpp
@@ -82,9 +84,9 @@ if (TARGET madrona_viz)
     add_executable(viewer viewer.cpp)
     target_link_libraries(viewer 
         PUBLIC
-        mad_escape_importer mad_escape_mgr 
+        mad_escape_importer mad_escape_mgr
         PRIVATE
-        madrona_mw_core madrona_viz)
+        madrona_mw_core madrona_viz madrona_cuda stb)
 
     target_compile_definitions(viewer PUBLIC
         -DMADRONA_VIEWER

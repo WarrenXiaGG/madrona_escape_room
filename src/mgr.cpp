@@ -301,11 +301,12 @@ static imp::ImportedAssets loadScenes(
     // Get all the asset paths and push unique scene infos
     uint32_t num_loaded_scenes = 0;
 
-    for (int i = 0; i < num_unique_scenes; ++i) {
+    for (int i = first_unique_scene; i < num_unique_scenes; ++i) {
         int random_index = random_indices[i];
         printf("################ Loading scene with index %d #######################\n", random_index);
 
         std::string scene_path = scene_paths[random_index];
+
         HabitatJSON::Scene loaded_scene;
 
         //uncomment this for procthor
@@ -480,17 +481,6 @@ static imp::ImportedAssets loadScenes(
     render_assets->objects[(CountT)SimObjectDefault::Button].meshes[0].materialIDX = 6;
     render_assets->objects[(CountT)SimObjectDefault::Plane].meshes[0].materialIDX = 4;
 
-#if 0
-    for (int obj_i = (int)SimObjectDefault::NumObjects;
-            obj_i < render_assets->objects.size(); ++obj_i) {
-        auto *obj_data = &render_assets->objects[obj_i];
-
-        for (int mesh_i = 0; mesh_i < obj_data->meshes.size(); ++mesh_i) {
-            obj_data->meshes[mesh_i].materialIDX = habitat_material;
-        }
-    }
-#endif
-
     if (render_mgr.has_value()) {
         printf("Rasterizer is loading assets\n");
 
@@ -506,220 +496,6 @@ static imp::ImportedAssets loadScenes(
     return std::move(*render_assets);
 }
 #endif
-
-static imp::ImportedAssets loadRenderObjects(
-        Optional<render::RenderManager> &render_mgr,
-        std::vector<ImportedInstance> &imported_instances,
-        math::Vector2 *scene_center,
-        bool merge_all)
-{
-    std::vector<render::MeshBVH::Node> nodes;
-    std::vector<render::MeshBVH::LeafGeometry> leafGeos;
-    std::vector<render::MeshBVH::LeafMaterial> leafMats;
-    std::vector<Vector3> vertices;
-    std::vector<render::MeshBVH> bvhs;
-
-    const char *loaded_env = getenv("MADRONA_LOADED_ENV");
-
-    assert(loaded_env != nullptr);
-
-    std::string scene_path;
-
-    if (loaded_env[0] == '0') {
-        *scene_center = { -59.872063, 36.738739 };
-        // Get the render objects needed from the habitat JSON
-        scene_path = std::filesystem::path(DATA_DIR) /
-            "hssd-hab/scenes-uncluttered/108736656_177263304.scene_instance.json";
-    } else if (loaded_env[0] == '1') {
-        *scene_center = { -8.241938, 36.422760 };
-        scene_path = std::filesystem::path(DATA_DIR) /
-            "hssd-hab/scenes-uncluttered/105515286_173104287.scene_instance.json";
-    } else if (loaded_env[0] == '2') {
-        *scene_center = { -17.695925, 5.110266 };
-        scene_path = std::filesystem::path(DATA_DIR) /
-            "hssd-hab/scenes-uncluttered/107734254_176000121.scene_instance.json";
-    }
-
-    auto loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
-
-    std::vector<std::string> render_asset_paths;
-    render_asset_paths.resize((size_t)SimObjectDefault::NumObjects);
-
-    render_asset_paths[(size_t)SimObjectDefault::Cube] =
-        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
-    render_asset_paths[(size_t)SimObjectDefault::Wall] =
-        (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
-    render_asset_paths[(size_t)SimObjectDefault::Door] =
-        (std::filesystem::path(DATA_DIR) / "wall_render.obj").string();
-    render_asset_paths[(size_t)SimObjectDefault::Agent] =
-        (std::filesystem::path(DATA_DIR) / "agent_render.obj").string();
-    render_asset_paths[(size_t)SimObjectDefault::Button] =
-        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
-    render_asset_paths[(size_t)SimObjectDefault::Plane] =
-        (std::filesystem::path(DATA_DIR) / "plane.obj").string();
-    // render_asset_paths[(size_t)SimObjectDefault::Dust2] =
-        // (std::filesystem::path(DATA_DIR) / "funky2.obj").string();
-    render_asset_paths[(size_t)SimObjectDefault::Dust2] =
-        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
-
-    // All models in the habitat thing use the same material for now
-    uint32_t habitat_material = 0;
-
-    float height_offset = 0.f;
-
-    float scale = 10.f;
-
-    // All the assets from the habitat JSON scene have object IDs which start at
-    // SimObjectDefault::NumObjects
-    {
-        imported_instances.push_back({
-            .position = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
-                        rotateVec({ 0.f, 0.f, 0.f + height_offset }) * scale,
-            .rotation = Quat::angleAxis(pi_d2,{ 1.f, 0.f, 0.f }) *
-                        Quat::angleAxis(0.f, math::up),
-            .scale = { scale, scale, scale },
-            .objectID = (int32_t)render_asset_paths.size(),
-        });
-
-        render_asset_paths.push_back(loaded_scene.stagePath.string());
-
-        std::unordered_map<std::string, uint32_t> loaded_gltfs;
-        std::unordered_map<uint32_t, uint32_t> object_to_imported_instance;
-
-        for (const HabitatJSON::AdditionalInstance &inst :
-                loaded_scene.additionalInstances) {
-            auto path_view = inst.gltfPath.string();
-            auto extension_pos = path_view.rfind('.');
-            assert(extension_pos != path_view.npos);
-            auto extension = path_view.substr(extension_pos + 1);
-
-            if (extension == "json") {
-                continue;
-            }
-
-            auto [iter, insert_success] = loaded_gltfs.emplace(inst.gltfPath.string(), 
-                    render_asset_paths.size());
-            if (insert_success) {
-                auto pos = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
-                           rotateVec(Vector3{ inst.pos[0], inst.pos[1], 
-                                              inst.pos[2] + height_offset });
-
-                auto scale_vec = madrona::math::Diag3x3 {
-                    inst.scale[0] * scale,
-                    inst.scale[1] * scale,
-                    inst.scale[2] * scale
-                };
-
-                ImportedInstance new_inst = {
-                    .position = {pos.x * scale, pos.y * scale, pos.z * scale},
-                    .rotation = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }) * 
-                                Quat{ inst.rotation[0], inst.rotation[1],
-                                      inst.rotation[2], inst.rotation[3] },
-                    .scale = scale_vec,
-                    .objectID = (int32_t)render_asset_paths.size(),
-                };
-
-                imported_instances.push_back(new_inst);
-                render_asset_paths.push_back(inst.gltfPath.string());
-            } else {
-                // Push the instance to the instances array
-                auto pos = Quat::angleAxis(pi_d2, { 1.f, 0.f, 0.f }).
-                           rotateVec(Vector3{ inst.pos[0], inst.pos[1], 
-                                              inst.pos[2] + height_offset });
-
-                auto scale_vec = madrona::math::Diag3x3 {
-                    inst.scale[0] * scale,
-                    inst.scale[1] * scale,
-                    inst.scale[2] * scale
-                };
-
-                ImportedInstance new_inst = {
-                    .position = {pos.x * scale,pos.y * scale,pos.z * scale},
-                    .rotation = Quat::angleAxis(pi_d2,{ 1.f, 0.f, 0.f }) *
-                                Quat{ inst.rotation[0], inst.rotation[1],
-                                      inst.rotation[2], inst.rotation[3] },
-                    .scale = scale_vec,
-                    .objectID = (int32_t)iter->second,
-                };
-
-                imported_instances.push_back(new_inst);
-            }
-        }
-
-        printf("Loaded %d render objects\n", (int)loaded_gltfs.size());
-    }
-
-    // std::array<const char *, (size_t)SimObjectDefault::NumObjects> render_asset_cstrs;
-    std::vector<const char *> render_asset_cstrs;
-    for (size_t i = 0; i < render_asset_paths.size(); i++) {
-        render_asset_cstrs.push_back(render_asset_paths[i].c_str());
-    }
-
-    printf("%d num gltfs\n", render_asset_paths.size());
-
-    std::array<char, 1024> import_err;
-    auto render_assets = imp::ImportedAssets::importFromDisk(
-        render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
-        true, true);
-
-    printf("%d render assets objects\n", render_assets->objects.size());
-
-    if (!render_assets.has_value()) {
-        FATAL("Failed to load render assets: %s", import_err);
-    }
-
-    auto materials = std::to_array<imp::SourceMaterial>({
-        { render::rgb8ToFloat(191, 108, 10), -1, 0.8f, 0.2f },
-        { math::Vector4{0.4f, 0.4f, 0.4f, 0.0f}, -1, 0.8f, 0.2f,},
-        { math::Vector4{1.f, 1.f, 1.f, 0.0f}, 1, 0.5f, 1.0f,},
-        { render::rgb8ToFloat(230, 230, 230),   -1, 0.8f, 1.0f },
-        { math::Vector4{0.5f, 0.3f, 0.3f, 0.0f},  0, 0.8f, 0.2f,},
-        { render::rgb8ToFloat(230, 20, 20),   -1, 0.8f, 1.0f },
-        { render::rgb8ToFloat(230, 230, 20),   -1, 0.8f, 1.0f },
-        { render::rgb8ToFloat(230, 230, 230),   -1, 0.8f, 1.0f },
-    });
-
-    habitat_material = 7;
-
-    // Override materials
-    render_assets->objects[(CountT)SimObjectDefault::Cube].meshes[0].materialIDX = 0;
-    render_assets->objects[(CountT)SimObjectDefault::Wall].meshes[0].materialIDX = 1;
-    render_assets->objects[(CountT)SimObjectDefault::Door].meshes[0].materialIDX = 5;
-    render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[0].materialIDX = 2;
-    render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[1].materialIDX = 3;
-    render_assets->objects[(CountT)SimObjectDefault::Agent].meshes[2].materialIDX = 3;
-    render_assets->objects[(CountT)SimObjectDefault::Button].meshes[0].materialIDX = 6;
-    render_assets->objects[(CountT)SimObjectDefault::Plane].meshes[0].materialIDX = 4;
-    for(int i =0; 
-            i<render_assets->objects[(CountT)SimObjectDefault::Dust2].meshes.size();
-            i++) {
-        render_assets->objects[(CountT) SimObjectDefault::Dust2].meshes[i].materialIDX = 0;
-    }
-
-    for (int obj_i = (int)SimObjectDefault::NumObjects;
-            obj_i < render_assets->objects.size(); ++obj_i) {
-        auto *obj_data = &render_assets->objects[obj_i];
-
-        for (int mesh_i = 0; mesh_i < obj_data->meshes.size(); ++mesh_i) {
-            obj_data->meshes[mesh_i].materialIDX = habitat_material;
-        }
-    }
-
-    if (render_mgr.has_value()) {
-        render_mgr->loadObjects(render_assets->objects, render_assets->materials, {
-            { (std::filesystem::path(DATA_DIR) /
-               "green_grid.png").string().c_str() },
-            { (std::filesystem::path(DATA_DIR) /
-               "smile.png").string().c_str() },
-        });
-
-        render_mgr->configureLighting({
-            { true, math::Vector3{1.0f, -1.0f, -0.05f}, math::Vector3{1.0f, 1.0f, 1.0f} }
-        });
-    }
-
-    return std::move(*render_assets);
-}
 
 static void loadPhysicsObjects(PhysicsLoader &loader)
 {
@@ -900,7 +676,6 @@ Manager::Impl * Manager::Impl::init(
         loadPhysicsObjects(phys_loader);
 
         ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
-        //sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
 
         Optional<RenderGPUState> render_gpu_state =
             initRenderGPUState(mgr_cfg);
@@ -934,19 +709,12 @@ Manager::Impl * Manager::Impl::init(
                 load_result,
                 green_grid_path, smile_path);
 
-        auto gpu_imported_assets_opt =
-            imp::ImportedAssets::makeGPUData(imported_assets);
-
-        assert(gpu_imported_assets_opt.has_value());
-
-        gpu_imported_assets = std::move(*gpu_imported_assets_opt);
-
         sim_cfg.importedInstances = (ImportedInstance *)cu::allocGPU(
                 sizeof(ImportedInstance) *
                 load_result.importedInstances.size());
 
         sim_cfg.numImportedInstances = load_result.importedInstances.size();
-        sim_cfg.numObjects = gpu_imported_assets.numBVHs;
+        // sim_cfg.numObjects = gpu_imported_assets.numBVHs;
 
         sim_cfg.numUniqueScenes = load_result.uniqueSceneInfos.size();
         sim_cfg.uniqueScenes = (UniqueScene *)cu::allocGPU(
@@ -1002,6 +770,11 @@ Manager::Impl * Manager::Impl::init(
             { GPU_HIDESEEK_SRC_LIST },
             { GPU_HIDESEEK_COMPILE_FLAGS },
             CompileConfig::OptMode::LTO,
+        }, {
+            .importedAssets = &imported_assets,
+            .renderResolution = raycast_output_resolution,
+            .nearPlane = 0.1f,
+            .farPlane = 1000.f
         }, cu_ctx);
 
         MWCudaLaunchGraph step_graph = gpu_exec.buildLaunchGraph(
@@ -1033,102 +806,6 @@ Manager::Impl * Manager::Impl::init(
 #endif
     } break;
     case ExecMode::CPU: {
-#if 0
-        PhysicsLoader phys_loader(ExecMode::CPU, 10);
-        loadPhysicsObjects(phys_loader);
-
-        ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
-        //sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
-
-        Optional<RenderGPUState> render_gpu_state =
-            initRenderGPUState(mgr_cfg);
-
-        Optional<render::RenderManager> render_mgr =
-            initRenderManager(mgr_cfg, render_gpu_state);
-
-        if (render_mgr.has_value()) {
-            std::vector<render::MeshBVH::Node> nodes;
-            std::vector<render::MeshBVH::LeafGeometry> leafGeos;
-            std::vector<render::MeshBVH::LeafMaterial> leafMats;
-            std::vector<Vector3> vertices;
-            std::vector<render::MeshBVH> bvhs;
-
-            auto imported_instances = loadRenderObjects(*render_mgr,bvhs,nodes,leafGeos,leafMats,vertices);
-            sim_cfg.renderBridge = render_mgr->bridge();
-
-            sim_cfg.importedInstances = (ImportedInstance *)malloc(
-                    sizeof(ImportedInstance) * imported_instances.size());
-            sim_cfg.numImportedInstances = imported_instances.size();
-            memcpy(sim_cfg.importedInstances, imported_instances.data(),
-                   sizeof(ImportedInstance) * imported_instances.size());
-
-            auto bvhPtr = (render::MeshBVH*)malloc(bvhs.size()*sizeof(render::MeshBVH));
-
-            auto nodePtr = (render::MeshBVH::Node*)malloc(nodes.size()*sizeof(render::MeshBVH::Node));
-            memcpy(nodePtr,nodes.data(),nodes.size()*sizeof(render::MeshBVH::Node));
-
-            auto geoPtr = (render::MeshBVH::LeafGeometry*)malloc(leafGeos.size()*sizeof(render::MeshBVH::LeafGeometry));
-            memcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(render::MeshBVH::LeafGeometry));
-
-            auto matPtr = (render::MeshBVH::LeafMaterial*)malloc(leafMats.size()*sizeof(render::MeshBVH::LeafMaterial));
-            memcpy(matPtr,leafMats.data(),sizeof(render::MeshBVH::LeafMaterial)*leafMats.size());
-
-            auto vertexPtr = (Vector3*)malloc(vertices.size()*sizeof(Vector3));
-            memcpy(vertexPtr,vertices.data(),vertices.size()*sizeof(Vector3));
-
-            //Fix BVH Pointers
-            printf("BVHlis %d\n",bvhs.size());
-            for(size_t i = 0;i<bvhs.size();i++){
-                size_t numLeafs = (size_t)(bvhs[i].leafGeos);
-                bvhs[i].nodes = nodePtr + (size_t)(bvhs[i].nodes);
-                bvhs[i].leafGeos= geoPtr + numLeafs;
-                bvhs[i].leafMats = matPtr + numLeafs;
-                bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
-            }
-            memcpy(bvhPtr,bvhs.data(),sizeof(render::MeshBVH)*bvhs.size());
-
-            for(int i=0;i<bvhs.size();i++){
-                float t;
-                Vector3 s;
-                bvhPtr[i].traceRay({0,0,0},{0,1,0},&t,&s);
-                //printf("%x,%x,%x,%x,%x\n",&bvhPtr[4].nodes[i],bvhPtr[4].nodes[i].children[0],bvhPtr[4].nodes[i].children[1],bvhPtr[4].nodes[i].children[2],bvhPtr[4].nodes[i].children[3]);
-            }
-
-            sim_cfg.bvhs = (void*)bvhPtr;
-        } else {
-            sim_cfg.renderBridge = nullptr;
-        }
-
-        HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
-
-        CPUImpl::TaskGraphT cpu_exec {
-            ThreadPoolExecutor::Config {
-                .numWorlds = mgr_cfg.numWorlds,
-                .numExportedBuffers = (uint32_t)ExportID::NumExports,
-            },
-            sim_cfg,
-            world_inits.data(),
-        };
-
-        WorldReset *world_reset_buffer = 
-            (WorldReset *)cpu_exec.getExported((uint32_t)ExportID::Reset);
-
-        Action *agent_actions_buffer = 
-            (Action *)cpu_exec.getExported((uint32_t)ExportID::Action);
-
-        auto cpu_impl = new CPUImpl {
-            mgr_cfg,
-            std::move(phys_loader),
-            world_reset_buffer,
-            agent_actions_buffer,
-            std::move(render_gpu_state),
-            std::move(render_mgr),
-            std::move(cpu_exec),
-        };
-
-        return cpu_impl;
-#endif
-        return {};
     } break;
     default: MADRONA_UNREACHABLE();
     }

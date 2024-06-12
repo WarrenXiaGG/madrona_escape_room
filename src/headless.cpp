@@ -180,9 +180,9 @@ int main(int argc, char *argv[])
             }
         }
 
-        std::string file_name = std::string("out") + std::to_string(i) + ".bmp";
-        stbi_write_bmp(file_name.c_str(), raycast_output_resolution * num_images_x, num_images_y * raycast_output_resolution,
-                      3, image_memory);
+        std::string file_name = std::string("out") + std::to_string(i) + ".png";
+        stbi_write_png(file_name.c_str(), raycast_output_resolution * num_images_x, num_images_y * raycast_output_resolution,
+                      3, image_memory, 3 * num_images_x * raycast_output_resolution);
 
         free(image_memory);
     }

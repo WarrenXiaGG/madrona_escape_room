@@ -145,7 +145,7 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
     }
 }
 
-#define DYNAMIC_MOVEMENT
+// #define DYNAMIC_MOVEMENT
 
 // Translates discrete actions from the Action component to forces
 // used by the physics simulation.
@@ -175,7 +175,8 @@ inline void movementSystem(Engine &ctx,
 
 #if defined(DYNAMIC_MOVEMENT)
     cam.yaw += 0.15f;
-    cam.pitch = 0.1f*std::sinf(random_thing + ctx.data().currentTime + entity_offset);
+    // cam.pitch = 0.1f*std::sinf(random_thing + ctx.data().currentTime + entity_offset);
+    cam.pitch = -0.33f;
 #endif
 
     cam.yaw += (action.rot-1)*consts::sensitivity;
@@ -190,7 +191,7 @@ inline void movementSystem(Engine &ctx,
     pos = Vector3{ 
         20.f*std::cosf(random_thing + ctx.data().currentTime + entity_offset), 
         20.f*std::sinf(random_thing + ctx.data().currentTime + entity_offset),
-        22.f + std::sinf(random_thing + ctx.data().currentTime + entity_offset) * 3.0f
+        15.f + std::sinf(random_thing + ctx.data().currentTime + entity_offset) * 3.0f
     };
 
     pos.x += ctx.data().worldCenter.x;
@@ -726,12 +727,15 @@ Sim::Sim(Engine &ctx,
     constexpr CountT max_total_entities = consts::maxAgents +
         consts::numRooms * (consts::maxEntitiesPerRoom + 3) +
         4; // side walls + floor
-
     ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
         ctx.data().curWorldEpisode++, (uint32_t)ctx.worldID().idx));
 
     mergeAll = cfg.mergeAll;
 
+    uint32_t current_world_id = ctx.worldID().idx;
+    uint32_t num_worlds_per_scene = cfg.numWorlds / cfg.numUniqueScenes;
+
+    // uint32_t current_scene = current_world_id / num_worlds_per_scene;
     uint32_t current_scene = ctx.data().rng.sampleI32(0, cfg.numUniqueScenes);
 
     UniqueScene *unique_scene = &cfg.uniqueScenes[current_scene];
