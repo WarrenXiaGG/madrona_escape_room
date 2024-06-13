@@ -90,6 +90,7 @@ static inline Optional<render::RenderManager> initRenderManager(
 
     return render::RenderManager(render_api, render_dev, {
         .enableBatchRenderer = mgr_cfg.enableBatchRenderer,
+        .renderMode = render::RenderManager::Config::RenderMode::Color,
         .agentViewWidth = mgr_cfg.batchRenderViewWidth,
         .agentViewHeight = mgr_cfg.batchRenderViewHeight,
         .numWorlds = mgr_cfg.numWorlds,
@@ -175,7 +176,7 @@ struct Manager::CUDAImpl final : Manager::Impl {
     MWCudaExecutor gpuExec;
     MWCudaLaunchGraph stepGraph;
     MWCudaLaunchGraph renderSetupGraph;
-    MWCudaLaunchGraph renderGraph;
+    Optional<MWCudaLaunchGraph> renderGraph;
 
     inline CUDAImpl(const Manager::Config &mgr_cfg,
                    WorldReset *reset_buffer,
@@ -185,7 +186,7 @@ struct Manager::CUDAImpl final : Manager::Impl {
                    MWCudaExecutor &&gpu_exec,
                    MWCudaLaunchGraph &&step_graph,
                    MWCudaLaunchGraph &&render_setup_graph,
-                   MWCudaLaunchGraph &&render_graph)
+                   Optional<MWCudaLaunchGraph> &&render_graph)
         : Impl(mgr_cfg,
                reset_buffer, action_buffer,
                std::move(render_gpu_state), std::move(render_mgr),
@@ -201,8 +202,11 @@ struct Manager::CUDAImpl final : Manager::Impl {
     inline virtual void run()
     {
         gpuExec.run(stepGraph);
-        gpuExec.run(renderGraph);
         gpuExec.run(renderSetupGraph);
+
+        if (renderGraph.has_value()) {
+            gpuExec.run(*renderGraph);
+        }
     }
 
     virtual inline Tensor exportTensor(ExportID slot,
@@ -938,10 +942,14 @@ Manager::Impl * Manager::Impl::init(
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
 
         uint32_t raycast_output_resolution = mgr_cfg.raycastOutputResolution;
+        RenderConfig::RenderMode rt_render_mode;
 
         // If the rasterizer is enabled, disable the raycaster
         if (mgr_cfg.enableBatchRenderer) {
             raycast_output_resolution = 0;
+            rt_render_mode = RenderConfig::RenderMode::None;
+        } else {
+            rt_render_mode = RenderConfig::RenderMode::Color;
         }
 
         printf("Combine compile:\n");
@@ -960,6 +968,7 @@ Manager::Impl * Manager::Impl::init(
             { GPU_HIDESEEK_COMPILE_FLAGS },
             CompileConfig::OptMode::LTO,
         }, {
+            .renderMode = rt_render_mode,
             .importedAssets = &imported_assets,
             .renderResolution = raycast_output_resolution,
             .nearPlane = 3.f,
@@ -970,7 +979,14 @@ Manager::Impl * Manager::Impl::init(
                 TaskGraphID::Step);
         MWCudaLaunchGraph render_setup_graph = gpu_exec.buildLaunchGraph(
                 TaskGraphID::Render);
-        MWCudaLaunchGraph render_graph = gpu_exec.buildRenderGraph();
+
+        Optional<MWCudaLaunchGraph> render_graph = [&]() -> Optional<MWCudaLaunchGraph> {
+            if (rt_render_mode == RenderConfig::RenderMode::None) {
+                return Optional<MWCudaLaunchGraph>::none();
+            } else {
+                return gpu_exec.buildRenderGraph();
+            }
+        } ();
 
         printf("Combine postcompile\n");
         WorldReset *world_reset_buffer = 
