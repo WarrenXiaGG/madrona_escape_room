@@ -545,11 +545,11 @@ static imp::ImportedAssets loadRenderObjects(
         math::Vector2 *scene_center,
         bool merge_all)
 {
-    std::vector<render::MeshBVH::Node> nodes;
-    std::vector<render::MeshBVH::LeafGeometry> leafGeos;
-    std::vector<render::MeshBVH::LeafMaterial> leafMats;
+    std::vector<MeshBVH::Node> nodes;
+    std::vector<MeshBVH::LeafGeometry> leafGeos;
+    std::vector<MeshBVH::LeafMaterial> leafMats;
     std::vector<Vector3> vertices;
-    std::vector<render::MeshBVH> bvhs;
+    std::vector<MeshBVH> bvhs;
 
     const char *loaded_env = getenv("MADRONA_LOADED_ENV");
 
@@ -1053,11 +1053,11 @@ Manager::Impl * Manager::Impl::init(
             initRenderManager(mgr_cfg, render_gpu_state);
 
         if (render_mgr.has_value()) {
-            std::vector<render::MeshBVH::Node> nodes;
-            std::vector<render::MeshBVH::LeafGeometry> leafGeos;
-            std::vector<render::MeshBVH::LeafMaterial> leafMats;
+            std::vector<MeshBVH::Node> nodes;
+            std::vector<MeshBVH::LeafGeometry> leafGeos;
+            std::vector<MeshBVH::LeafMaterial> leafMats;
             std::vector<Vector3> vertices;
-            std::vector<render::MeshBVH> bvhs;
+            std::vector<MeshBVH> bvhs;
 
             auto imported_instances = loadRenderObjects(*render_mgr,bvhs,nodes,leafGeos,leafMats,vertices);
             sim_cfg.renderBridge = render_mgr->bridge();
@@ -1068,16 +1068,16 @@ Manager::Impl * Manager::Impl::init(
             memcpy(sim_cfg.importedInstances, imported_instances.data(),
                    sizeof(ImportedInstance) * imported_instances.size());
 
-            auto bvhPtr = (render::MeshBVH*)malloc(bvhs.size()*sizeof(render::MeshBVH));
+            auto bvhPtr = (MeshBVH*)malloc(bvhs.size()*sizeof(MeshBVH));
 
-            auto nodePtr = (render::MeshBVH::Node*)malloc(nodes.size()*sizeof(render::MeshBVH::Node));
-            memcpy(nodePtr,nodes.data(),nodes.size()*sizeof(render::MeshBVH::Node));
+            auto nodePtr = (MeshBVH::Node*)malloc(nodes.size()*sizeof(MeshBVH::Node));
+            memcpy(nodePtr,nodes.data(),nodes.size()*sizeof(MeshBVH::Node));
 
-            auto geoPtr = (render::MeshBVH::LeafGeometry*)malloc(leafGeos.size()*sizeof(render::MeshBVH::LeafGeometry));
-            memcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(render::MeshBVH::LeafGeometry));
+            auto geoPtr = (MeshBVH::LeafGeometry*)malloc(leafGeos.size()*sizeof(MeshBVH::LeafGeometry));
+            memcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(MeshBVH::LeafGeometry));
 
-            auto matPtr = (render::MeshBVH::LeafMaterial*)malloc(leafMats.size()*sizeof(render::MeshBVH::LeafMaterial));
-            memcpy(matPtr,leafMats.data(),sizeof(render::MeshBVH::LeafMaterial)*leafMats.size());
+            auto matPtr = (MeshBVH::LeafMaterial*)malloc(leafMats.size()*sizeof(MeshBVH::LeafMaterial));
+            memcpy(matPtr,leafMats.data(),sizeof(MeshBVH::LeafMaterial)*leafMats.size());
 
             auto vertexPtr = (Vector3*)malloc(vertices.size()*sizeof(Vector3));
             memcpy(vertexPtr,vertices.data(),vertices.size()*sizeof(Vector3));
@@ -1091,7 +1091,7 @@ Manager::Impl * Manager::Impl::init(
                 bvhs[i].leafMats = matPtr + numLeafs;
                 bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
             }
-            memcpy(bvhPtr,bvhs.data(),sizeof(render::MeshBVH)*bvhs.size());
+            memcpy(bvhPtr,bvhs.data(),sizeof(MeshBVH)*bvhs.size());
 
             for(int i=0;i<bvhs.size();i++){
                 float t;
