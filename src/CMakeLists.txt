@@ -48,6 +48,7 @@ target_link_libraries(mad_escape_mgr
         madrona_importer
         madrona_physics_loader
         madrona_render
+        madrona_ktx
 )
 
 if (TARGET madrona_mw_gpu)

@@ -2,3 +2,6 @@
 	path = external/madrona
 	url = https://github.com/shacklettbp/madrona.git
 	branch = bvh_update
+[submodule "external/madrona-ktx"]
+	path = external/madrona-ktx
+	url = https://github.com/shacklettbp/madrona-ktx.git

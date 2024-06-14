@@ -21,6 +21,9 @@
 #include <fstream>
 #include <string>
 
+//#include "../external/madrona-ktx/external/KTX-Software/include/ktx.h"
+#include "../external/madrona-ktx/madrona_ktx.h"
+
 #ifdef MADRONA_CUDA_SUPPORT
 #include <madrona/mw_gpu.hpp>
 #include <madrona/cuda_utils.hpp>
@@ -225,6 +228,27 @@ struct LoadResult {
     std::vector<ImportedInstance> importedInstances;
     std::vector<UniqueScene> uniqueSceneInfos;
 };
+
+madrona::imp::ImportedAssets::ProcessOutput processTextures(madrona::imp::SourceTexture& tex){
+    if(tex.pix_info.data.format == madrona::imp::TextureFormat::KTX2) {
+        if(!tex.pix_info.data.processed) {
+            ConvertedOutput con_out;
+            loadKTXMem(tex.pix_info.data.imageData, tex.pix_info.data.imageSize, &con_out);
+
+            madrona::imp::BackingImageData newTex;
+            newTex.width = con_out.width;
+            newTex.height = con_out.height;
+            newTex.imageData =(uint8_t*)con_out.texture_data,
+            newTex.imageSize = con_out.bufferSize;
+            newTex.format = madrona::imp::TextureFormat::BC7;
+            newTex.processed = true;
+            return {.shouldCache = true, .newTex = newTex};
+        } else {
+            return {.shouldCache = false};
+        }
+    }
+    return {.shouldCache = false};
+}
 
 #if 1
 static imp::ImportedAssets loadScenes(
@@ -494,6 +518,10 @@ static imp::ImportedAssets loadScenes(
         }
     }
 #endif
+
+    char *texture_cache = getenv("MADRONA_TEXTURE_CACHE_DIR");
+    render_assets->postProcessTextures(texture_cache,&processTextures);
+
 
     if (render_mgr.has_value()) {
         printf("Rasterizer is loading assets\n");
