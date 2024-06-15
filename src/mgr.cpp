@@ -468,7 +468,7 @@ static imp::ImportedAssets loadScenes(
     std::array<char, 1024> import_err;
     auto render_assets = imp::ImportedAssets::importFromDisk(
         render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
-        true, true);
+        true);
 
     if (cache_everything && std::stoi(cache_everything) == 1) {
         exit(0);
@@ -692,7 +692,7 @@ static imp::ImportedAssets loadRenderObjects(
     std::array<char, 1024> import_err;
     auto render_assets = imp::ImportedAssets::importFromDisk(
         render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
-        true, true);
+        true);
 
     printf("%d render assets objects\n", render_assets->objects.size());
 
