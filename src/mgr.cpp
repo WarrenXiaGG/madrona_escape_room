@@ -230,22 +230,16 @@ struct LoadResult {
 };
 
 madrona::imp::ImportedAssets::ProcessOutput processTextures(madrona::imp::SourceTexture& tex){
-    if(tex.pix_info.data.format == madrona::imp::TextureFormat::KTX2) {
-        if(!tex.pix_info.data.processed) {
-            ConvertedOutput con_out;
-            loadKTXMem(tex.pix_info.data.imageData, tex.pix_info.data.imageSize, &con_out);
+    if(tex.config.format == madrona::imp::TextureFormat::KTX2) {
+        ConvertedOutput con_out;
+        loadKTXMem(tex.imageData, tex.config.imageSize, &con_out);
 
-            madrona::imp::BackingImageData newTex;
-            newTex.width = con_out.width;
-            newTex.height = con_out.height;
-            newTex.imageData =(uint8_t*)con_out.texture_data,
-            newTex.imageSize = con_out.bufferSize;
-            newTex.format = madrona::imp::TextureFormat::BC7;
-            newTex.processed = true;
-            return {.shouldCache = true, .newTex = newTex};
-        } else {
-            return {.shouldCache = false};
-        }
+        madrona::imp::SourceTextureConfig newTex;
+        newTex.width = con_out.width;
+        newTex.height = con_out.height;
+        newTex.imageSize = con_out.bufferSize;
+        newTex.format = madrona::imp::TextureFormat::BC7;
+        return {.shouldCache = true, .outputData = con_out.texture_data, .newTex = newTex};
     }
     return {.shouldCache = false};
 }
@@ -970,14 +964,14 @@ Manager::Impl * Manager::Impl::init(
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
 
         uint32_t raycast_output_resolution = mgr_cfg.raycastOutputResolution;
-        RenderConfig::RenderMode rt_render_mode;
+        CudaBatchRenderConfig::RenderMode rt_render_mode;
 
         // If the rasterizer is enabled, disable the raycaster
         if (mgr_cfg.enableBatchRenderer) {
             raycast_output_resolution = 0;
-            rt_render_mode = RenderConfig::RenderMode::None;
+            rt_render_mode = CudaBatchRenderConfig::RenderMode::None;
         } else {
-            rt_render_mode = RenderConfig::RenderMode::Color;
+            rt_render_mode = CudaBatchRenderConfig::RenderMode::Color;
         }
 
         printf("Combine compile:\n");
@@ -995,13 +989,13 @@ Manager::Impl * Manager::Impl::init(
             { GPU_HIDESEEK_SRC_LIST },
             { GPU_HIDESEEK_COMPILE_FLAGS },
             CompileConfig::OptMode::LTO,
-        }, {
+        }, cu_ctx, {
             .renderMode = rt_render_mode,
             .importedAssets = &imported_assets,
             .renderResolution = raycast_output_resolution,
             .nearPlane = 3.f,
             .farPlane = 1000.f
-        }, cu_ctx);
+        });
 
         MWCudaLaunchGraph step_graph = gpu_exec.buildLaunchGraph(
                 TaskGraphID::Step);
@@ -1009,7 +1003,7 @@ Manager::Impl * Manager::Impl::init(
                 TaskGraphID::Render);
 
         Optional<MWCudaLaunchGraph> render_graph = [&]() -> Optional<MWCudaLaunchGraph> {
-            if (rt_render_mode == RenderConfig::RenderMode::None) {
+            if (rt_render_mode == CudaBatchRenderConfig::RenderMode::None) {
                 return Optional<MWCudaLaunchGraph>::none();
             } else {
                 return gpu_exec.buildRenderGraph();
