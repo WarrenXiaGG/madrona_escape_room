@@ -14,6 +14,8 @@
 #include <madrona/render/api.hpp>
 #include <madrona/physics_assets.hpp>
 
+#include <madrona/render/asset_processor.hpp>
+
 #include <array>
 #include <charconv>
 #include <iostream>
@@ -229,7 +231,10 @@ struct LoadResult {
     std::vector<UniqueScene> uniqueSceneInfos;
 };
 
-madrona::imp::ImportedAssets::ProcessOutput processTextures(madrona::imp::SourceTexture& tex){
+#if 0
+madrona::imp::ImportedAssets::ProcessOutput processTexture(
+        void *data, size_t num_bytes)
+{
     if(tex.config.format == madrona::imp::TextureFormat::KTX2) {
         ConvertedOutput con_out;
         loadKTXMem(tex.imageData, tex.config.imageSize, &con_out);
@@ -243,6 +248,7 @@ madrona::imp::ImportedAssets::ProcessOutput processTextures(madrona::imp::Source
     }
     return {.shouldCache = false};
 }
+#endif
 
 #if 1
 static imp::ImportedAssets loadScenes(
@@ -251,7 +257,8 @@ static imp::ImportedAssets loadScenes(
         uint32_t num_unique_scenes,
         LoadResult &load_result,
         const std::string &green_grid_path,
-        const std::string &smile_path)
+        const std::string &smile_path,
+        imp::AssetImporter &asset_importer)
 {
     const char *cache_everything = getenv("MADRONA_CACHE_ALL_BVH");
     const char *proc_thor = getenv("MADRONA_PROC_THOR");
@@ -460,7 +467,7 @@ static imp::ImportedAssets loadScenes(
     }
 
     std::array<char, 1024> import_err;
-    auto render_assets = imp::ImportedAssets::importFromDisk(
+    auto render_assets = asset_importer.importFromDisk(
         render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
         true);
 
@@ -474,8 +481,6 @@ static imp::ImportedAssets loadScenes(
 
 
     // Push the additional textures
-    int32_t green_grid_tex_idx = render_assets->texture.size();
-    int32_t smile_tex_idx = green_grid_tex_idx + 1;
 
     // render_assets->texture.push_back(imp::SourceTexture(green_grid_path.c_str()));
     // render_assets->texture.push_back(imp::SourceTexture(smile_path.c_str()));
@@ -483,9 +488,9 @@ static imp::ImportedAssets loadScenes(
     auto materials = std::to_array<imp::SourceMaterial>({
         { render::rgb8ToFloat(191, 108, 10), -1, 0.8f, 0.2f },
         { math::Vector4{0.4f, 0.4f, 0.4f, 0.0f}, -1, 0.8f, 0.2f,},
-        { math::Vector4{1.f, 1.f, 1.f, 0.0f}, smile_tex_idx, 0.5f, 1.0f,},
+        { math::Vector4{1.f, 1.f, 1.f, 0.0f}, -1, 0.5f, 1.0f,},
         { render::rgb8ToFloat(230, 230, 230),   -1, 0.8f, 1.0f },
-        { math::Vector4{0.5f, 0.3f, 0.3f, 0.0f},  green_grid_tex_idx, 0.8f, 0.2f,},
+        { math::Vector4{0.5f, 0.3f, 0.3f, 0.0f},  -1, 0.8f, 0.2f,},
         { render::rgb8ToFloat(230, 20, 20),   -1, 0.8f, 1.0f },
         { render::rgb8ToFloat(230, 230, 20),   -1, 0.8f, 1.0f },
         { render::rgb8ToFloat(230, 230, 230),   -1, 0.8f, 1.0f },
@@ -502,27 +507,12 @@ static imp::ImportedAssets loadScenes(
     render_assets->objects[(CountT)SimObjectDefault::Button].meshes[0].materialIDX = 6;
     render_assets->objects[(CountT)SimObjectDefault::Plane].meshes[0].materialIDX = 4;
 
-#if 0
-    for (int obj_i = (int)SimObjectDefault::NumObjects;
-            obj_i < render_assets->objects.size(); ++obj_i) {
-        auto *obj_data = &render_assets->objects[obj_i];
-
-        for (int mesh_i = 0; mesh_i < obj_data->meshes.size(); ++mesh_i) {
-            obj_data->meshes[mesh_i].materialIDX = habitat_material;
-        }
-    }
-#endif
-
-    char *texture_cache = getenv("MADRONA_TEXTURE_CACHE_DIR");
-    render_assets->postProcessTextures(texture_cache,&processTextures);
-
-
     if (render_mgr.has_value()) {
         printf("Rasterizer is loading assets\n");
 
         render_mgr->loadObjects(render_assets->objects, 
                 render_assets->materials, 
-                render_assets->texture);
+                {});
 
         render_mgr->configureLighting({
             { true, math::Vector3{1.0f, -1.0f, -0.05f}, math::Vector3{1.0f, 1.0f, 1.0f} }
@@ -533,6 +523,7 @@ static imp::ImportedAssets loadScenes(
 }
 #endif
 
+#if 0
 static imp::ImportedAssets loadRenderObjects(
         Optional<render::RenderManager> &render_mgr,
         std::vector<ImportedInstance> &imported_instances,
@@ -684,7 +675,7 @@ static imp::ImportedAssets loadRenderObjects(
     printf("%d num gltfs\n", render_asset_paths.size());
 
     std::array<char, 1024> import_err;
-    auto render_assets = imp::ImportedAssets::importFromDisk(
+    auto render_assets = asset_importer.importFromDisk(
         render_asset_cstrs, Span<char>(import_err.data(), import_err.size()),
         true);
 
@@ -746,7 +737,9 @@ static imp::ImportedAssets loadRenderObjects(
 
     return std::move(*render_assets);
 }
+#endif
 
+#if 0
 static void loadPhysicsObjects(PhysicsLoader &loader)
 {
     std::array<std::string, (size_t)SimObjectDefault::NumObjects - 1> asset_paths;
@@ -877,6 +870,7 @@ static void loadPhysicsObjects(PhysicsLoader &loader)
     loader.loadRigidBodies(rigid_body_assets);
     free(rigid_body_data);
 }
+#endif
 
 Manager::Impl * Manager::Impl::init(
     const Manager::Config &mgr_cfg)
@@ -924,11 +918,14 @@ Manager::Impl * Manager::Impl::init(
         std::string smile_path = (std::filesystem::path(DATA_DIR) /
                                   "smile.png").string();
 
+        imp::AssetImporter asset_importer;
+
         auto imported_assets = loadScenes(
                 render_mgr, std::stoi(first_unique_scene_str),
                 std::stoi(num_unique_scene_str),
                 load_result,
-                green_grid_path, smile_path);
+                green_grid_path, smile_path,
+                asset_importer);
 
         sim_cfg.importedInstances = (ImportedInstance *)cu::allocGPU(
                 sizeof(ImportedInstance) *
@@ -969,10 +966,18 @@ Manager::Impl * Manager::Impl::init(
         // If the rasterizer is enabled, disable the raycaster
         if (mgr_cfg.enableBatchRenderer) {
             raycast_output_resolution = 0;
-            rt_render_mode = CudaBatchRenderConfig::RenderMode::None;
         } else {
             rt_render_mode = CudaBatchRenderConfig::RenderMode::Color;
         }
+
+        MeshBVHData mesh_bvh_data = 
+            render::AssetProcessor::makeBVHData(imported_assets.objects);
+        MaterialData material_data =
+            render::AssetProcessor::initMaterialData(
+                    imported_assets.materials.data(),
+                    imported_assets.materials.size(),
+                    nullptr,
+                    0);
 
         printf("Combine compile:\n");
         MWCudaExecutor gpu_exec({
@@ -989,9 +994,12 @@ Manager::Impl * Manager::Impl::init(
             { GPU_HIDESEEK_SRC_LIST },
             { GPU_HIDESEEK_COMPILE_FLAGS },
             CompileConfig::OptMode::LTO,
-        }, cu_ctx, {
+        }, cu_ctx, CudaBatchRenderConfig {
             .renderMode = rt_render_mode,
-            .importedAssets = &imported_assets,
+
+            .geoBVHData = mesh_bvh_data,
+            .materialData = material_data,
+
             .renderResolution = raycast_output_resolution,
             .nearPlane = 3.f,
             .farPlane = 1000.f
@@ -1003,7 +1011,7 @@ Manager::Impl * Manager::Impl::init(
                 TaskGraphID::Render);
 
         Optional<MWCudaLaunchGraph> render_graph = [&]() -> Optional<MWCudaLaunchGraph> {
-            if (rt_render_mode == CudaBatchRenderConfig::RenderMode::None) {
+            if (raycast_output_resolution == 0) {
                 return Optional<MWCudaLaunchGraph>::none();
             } else {
                 return gpu_exec.buildRenderGraph();

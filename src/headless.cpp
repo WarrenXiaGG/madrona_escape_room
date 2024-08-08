@@ -126,7 +126,9 @@ int main(int argc, char *argv[])
             }
         }
         mgr.step();
+    }
 
+    {
         uint32_t num_images_total = num_worlds;
 
         unsigned char* print_ptr;
@@ -155,7 +157,7 @@ int main(int argc, char *argv[])
 
         char *image_memory = (char *)malloc(bytes_per_image * num_images_total);
 
-        uint32_t num_images_y = 10;
+        uint32_t num_images_y = 2;
         uint32_t num_images_x = num_images_total / num_images_y;
 
         uint32_t output_num_pixels_x = num_images_x * raycast_output_resolution;
@@ -180,7 +182,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        std::string file_name = std::string("out") + std::to_string(i) + ".png";
+        std::string file_name = std::string("out") + std::to_string(0) + ".png";
         stbi_write_png(file_name.c_str(), raycast_output_resolution * num_images_x, num_images_y * raycast_output_resolution,
                       3, image_memory, 3 * num_images_x * raycast_output_resolution);
 
