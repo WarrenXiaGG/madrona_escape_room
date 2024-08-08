@@ -33,9 +33,10 @@ void transposeImage(char *output,
 {
     for (uint32_t y = 0; y < res; ++y) {
         for (uint32_t x = 0; x < res; ++x) {
-            output[3*(y + x * res) + 0] = input[3*(x + y * res) + 0];
-            output[3*(y + x * res) + 1] = input[3*(x + y * res) + 1];
-            output[3*(y + x * res) + 2] = input[3*(x + y * res) + 2];
+            output[4*(y + x * res) + 0] = input[4*(x + y * res) + 0];
+            output[4*(y + x * res) + 1] = input[4*(x + y * res) + 1];
+            output[4*(y + x * res) + 2] = input[4*(x + y * res) + 2];
+            output[4*(y + x * res) + 3] = input[4*(x + y * res) + 3];
         }
     }
 }
@@ -132,13 +133,13 @@ int main(int argc, char *argv[])
         uint32_t num_images_total = num_worlds;
 
         unsigned char* print_ptr;
-            int64_t num_bytes = 3 * raycast_output_resolution * raycast_output_resolution * num_images_total;
+            int64_t num_bytes = 4 * raycast_output_resolution * raycast_output_resolution * num_images_total;
             print_ptr = (unsigned char*)cu::allocReadback(num_bytes);
 
-        char *raycast_tensor = (char *)(mgr.raycastTensor().devicePtr());
+        char *raycast_tensor = (char *)(mgr.rgbTensor().devicePtr());
 
-        uint32_t bytes_per_image = 3 * raycast_output_resolution * raycast_output_resolution;
-        uint32_t row_stride_bytes = 3 * raycast_output_resolution;
+        uint32_t bytes_per_image = 4 * raycast_output_resolution * raycast_output_resolution;
+        uint32_t row_stride_bytes = 4 * raycast_output_resolution;
 
         uint32_t image_idx = 0;
 
@@ -168,23 +169,23 @@ int main(int argc, char *argv[])
 
                 const char *input_image = raycast_tensor + image_idx * bytes_per_image;
 
-                transposeImage(tmp_image_memory, input_image, raycast_output_resolution, 3);
+                transposeImage(tmp_image_memory, input_image, raycast_output_resolution, 4);
 
                 for (uint32_t row_idx = 0; row_idx < raycast_output_resolution; ++row_idx) {
                     const char *input_row = tmp_image_memory + row_idx * row_stride_bytes;
 
                     uint32_t output_pixel_x = image_x * raycast_output_resolution;
                     uint32_t output_pixel_y = image_y * raycast_output_resolution + row_idx;
-                    char *output_row = image_memory + 3 * (output_pixel_x + output_pixel_y * output_num_pixels_x);
+                    char *output_row = image_memory + 4 * (output_pixel_x + output_pixel_y * output_num_pixels_x);
 
-                    memcpy(output_row, input_row, 3 * raycast_output_resolution);
+                    memcpy(output_row, input_row, 4 * raycast_output_resolution);
                 }
             }
         }
 
         std::string file_name = std::string("out") + std::to_string(0) + ".png";
         stbi_write_png(file_name.c_str(), raycast_output_resolution * num_images_x, num_images_y * raycast_output_resolution,
-                      3, image_memory, 3 * num_images_x * raycast_output_resolution);
+                      4, image_memory, 4 * num_images_x * raycast_output_resolution);
 
         free(image_memory);
     }
