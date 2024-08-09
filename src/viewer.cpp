@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
 
         printObs();
     }, [&]() {
-        {
+        if (0) {
             uint32_t num_image_x = 1;
             uint32_t num_image_y = 1;
 
@@ -425,7 +425,7 @@ int main(int argc, char *argv[])
 
 
 
-        {
+        if (0) {
             uint32_t num_images_total = 1;
 
             unsigned char* print_ptr;

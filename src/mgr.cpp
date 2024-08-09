@@ -164,7 +164,8 @@ struct Manager::CPUImpl final : Manager::Impl {
 
     inline virtual void run()
     {
-        cpuExec.run();
+        cpuExec.runTaskGraph((uint32_t)TaskGraphID::Step);
+        cpuExec.runTaskGraph((uint32_t)TaskGraphID::Render);
     }
 
     virtual inline Tensor exportTensor(ExportID slot,
@@ -1046,71 +1047,69 @@ Manager::Impl * Manager::Impl::init(
 #endif
     } break;
     case ExecMode::CPU: {
-#if 0
-        PhysicsLoader phys_loader(ExecMode::CPU, 10);
-        loadPhysicsObjects(phys_loader);
-
-        ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
-        //sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
-
         Optional<RenderGPUState> render_gpu_state =
             initRenderGPUState(mgr_cfg);
 
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
+        std::vector<ImportedInstance> imported_instances;
+        sim_cfg.mergeAll = false;
+
+        const char *first_unique_scene_str = getenv("HSSD_FIRST_SCENE");
+        const char *num_unique_scene_str = getenv("HSSD_NUM_SCENES");
+
+        assert(first_unique_scene_str && num_unique_scene_str);
+
+        printf("%d %d\n", std::stoi(first_unique_scene_str), std::stoi(num_unique_scene_str));
+
+        LoadResult load_result = {};
+
+        std::string green_grid_path = (std::filesystem::path(DATA_DIR) /
+                                       "green_grid.png").string();
+
+        std::string smile_path = (std::filesystem::path(DATA_DIR) /
+                                  "smile.png").string();
+
+        imp::AssetImporter asset_importer;
+
+        auto imported_assets = loadScenes(
+                render_mgr, std::stoi(first_unique_scene_str),
+                std::stoi(num_unique_scene_str),
+                load_result,
+                green_grid_path, smile_path,
+                asset_importer);
+
+        sim_cfg.importedInstances = (ImportedInstance *)malloc(
+                sizeof(ImportedInstance) *
+                load_result.importedInstances.size());
+
+        sim_cfg.numImportedInstances = load_result.importedInstances.size();
+
+        sim_cfg.numUniqueScenes = load_result.uniqueSceneInfos.size();
+        sim_cfg.uniqueScenes = (UniqueScene *)malloc(
+                sizeof(UniqueScene) * load_result.uniqueSceneInfos.size());
+
+        sim_cfg.numWorlds = mgr_cfg.numWorlds;
+
+        memcpy(sim_cfg.importedInstances, 
+            load_result.importedInstances.data(),
+            sizeof(ImportedInstance) * 
+                load_result.importedInstances.size());
+
+        memcpy(sim_cfg.uniqueScenes, 
+            load_result.uniqueSceneInfos.data(),
+            sizeof(UniqueScene) *
+                load_result.uniqueSceneInfos.size());
+
         if (render_mgr.has_value()) {
-            std::vector<MeshBVH::Node> nodes;
-            std::vector<MeshBVH::LeafGeometry> leafGeos;
-            std::vector<MeshBVH::LeafMaterial> leafMats;
-            std::vector<Vector3> vertices;
-            std::vector<MeshBVH> bvhs;
-
-            auto imported_instances = loadRenderObjects(*render_mgr,bvhs,nodes,leafGeos,leafMats,vertices);
             sim_cfg.renderBridge = render_mgr->bridge();
-
-            sim_cfg.importedInstances = (ImportedInstance *)malloc(
-                    sizeof(ImportedInstance) * imported_instances.size());
-            sim_cfg.numImportedInstances = imported_instances.size();
-            memcpy(sim_cfg.importedInstances, imported_instances.data(),
-                   sizeof(ImportedInstance) * imported_instances.size());
-
-            auto bvhPtr = (MeshBVH*)malloc(bvhs.size()*sizeof(MeshBVH));
-
-            auto nodePtr = (MeshBVH::Node*)malloc(nodes.size()*sizeof(MeshBVH::Node));
-            memcpy(nodePtr,nodes.data(),nodes.size()*sizeof(MeshBVH::Node));
-
-            auto geoPtr = (MeshBVH::LeafGeometry*)malloc(leafGeos.size()*sizeof(MeshBVH::LeafGeometry));
-            memcpy(geoPtr,leafGeos.data(),leafGeos.size()*sizeof(MeshBVH::LeafGeometry));
-
-            auto matPtr = (MeshBVH::LeafMaterial*)malloc(leafMats.size()*sizeof(MeshBVH::LeafMaterial));
-            memcpy(matPtr,leafMats.data(),sizeof(MeshBVH::LeafMaterial)*leafMats.size());
-
-            auto vertexPtr = (Vector3*)malloc(vertices.size()*sizeof(Vector3));
-            memcpy(vertexPtr,vertices.data(),vertices.size()*sizeof(Vector3));
-
-            //Fix BVH Pointers
-            printf("BVHlis %d\n",bvhs.size());
-            for(size_t i = 0;i<bvhs.size();i++){
-                size_t numLeafs = (size_t)(bvhs[i].leafGeos);
-                bvhs[i].nodes = nodePtr + (size_t)(bvhs[i].nodes);
-                bvhs[i].leafGeos= geoPtr + numLeafs;
-                bvhs[i].leafMats = matPtr + numLeafs;
-                bvhs[i].vertices = vertexPtr + (size_t)(bvhs[i].vertices);
-            }
-            memcpy(bvhPtr,bvhs.data(),sizeof(MeshBVH)*bvhs.size());
-
-            for(int i=0;i<bvhs.size();i++){
-                float t;
-                Vector3 s;
-                bvhPtr[i].traceRay({0,0,0},{0,1,0},&t,&s);
-                //printf("%x,%x,%x,%x,%x\n",&bvhPtr[4].nodes[i],bvhPtr[4].nodes[i].children[0],bvhPtr[4].nodes[i].children[1],bvhPtr[4].nodes[i].children[2],bvhPtr[4].nodes[i].children[3]);
-            }
-
-            sim_cfg.bvhs = (void*)bvhPtr;
         } else {
             sim_cfg.renderBridge = nullptr;
         }
+
+
+
 
         HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
 
@@ -1121,6 +1120,7 @@ Manager::Impl * Manager::Impl::init(
             },
             sim_cfg,
             world_inits.data(),
+            (uint32_t)TaskGraphID::NumTaskGraphs
         };
 
         WorldReset *world_reset_buffer = 
@@ -1131,7 +1131,6 @@ Manager::Impl * Manager::Impl::init(
 
         auto cpu_impl = new CPUImpl {
             mgr_cfg,
-            std::move(phys_loader),
             world_reset_buffer,
             agent_actions_buffer,
             std::move(render_gpu_state),
@@ -1140,8 +1139,6 @@ Manager::Impl * Manager::Impl::init(
         };
 
         return cpu_impl;
-#endif
-        return {};
     } break;
     default: MADRONA_UNREACHABLE();
     }
