@@ -29,7 +29,7 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
 
     try {
         simdjson::dom::parser scene_parser;
-        simdjson::dom::element root = scene_parser.load(scene_path);
+        simdjson::dom::element root = scene_parser.load(scene_path.string());
 
         string_view stage_name = root["stage_instance"]["template_name"];
 
@@ -39,8 +39,7 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
         stage_path.concat(".stage_config.json");
 
         simdjson::dom::parser stage_parser;
-        std::cout << stage_path.c_str() << std::endl;
-        auto stage_root = stage_parser.load(stage_path);
+        auto stage_root = stage_parser.load(stage_path.string());
         string_view render_asset_name = stage_root["render_asset"];
         scene.stagePath = 
             stage_dir / render_asset_name;
@@ -188,7 +187,7 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
                 object_glb_path.concat(".object_config.json");
             }
 
-            auto inst_root = nested_parser.load(object_config_path);
+            auto inst_root = nested_parser.load(object_config_path.string());
             string_view inst_asset = inst_root["render_asset"];
 
             additional_inst.name = string(template_name);
@@ -207,7 +206,7 @@ Scene habitatJSONLoad(std::string_view scene_path_name)
                 string_view template_name = obj["template_name"];
                 auto template_path = root_path / template_name;
                 template_path.concat(".object_config.json");
-                auto obj_root = nested_parser.load(template_path);
+                auto obj_root = nested_parser.load(template_path.string());
                 string_view obj_asset = obj_root["render_asset"];
 
                 auto obj_path = template_path.parent_path() / obj_asset;
@@ -243,14 +242,14 @@ Scene procThorJSONLoad(std::string_view root_paths,
 
     try {
         simdjson::dom::parser scene_parser;
-        simdjson::dom::element root = scene_parser.load(scene_path);
+        simdjson::dom::element root = scene_parser.load(scene_path.string());
 
         string_view stage_name = root["stage_instance"]["template_name"];
         auto stage_path = root_path / stage_name;
         stage_path.concat(".stage_config.json");
 
         simdjson::dom::parser stage_parser;
-        auto stage_root = stage_parser.load(stage_path);
+        auto stage_root = stage_parser.load(stage_path.string());
         string_view render_asset_name = stage_root["render_asset"];
         scene.stagePath =
             stage_path.parent_path() / render_asset_name;
@@ -272,7 +271,7 @@ Scene procThorJSONLoad(std::string_view root_paths,
             lighting_path.concat(".lighting_config.json");
 
             simdjson::dom::parser light_parser;
-            auto light_root = light_parser.load(root_path / lighting_path);
+            auto light_root = light_parser.load((root_path / lighting_path).string());
 
             vector<Light> lights;
             for (auto [idx, light] : dom::object(light_root["lights"])) {
@@ -364,7 +363,7 @@ Scene procThorJSONLoad(std::string_view root_paths,
             object_config_path = object_config_path / template_name;
             object_config_path.concat(".object_config.json");
 
-            auto inst_root = nested_parser.load(object_config_path);
+            auto inst_root = nested_parser.load(object_config_path.string());
             string_view inst_asset = inst_root["render_asset"];
             object_glb_path = object_glb_path / inst_asset;
 

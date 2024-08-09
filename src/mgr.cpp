@@ -24,7 +24,7 @@
 #include <string>
 
 //#include "../external/madrona-ktx/external/KTX-Software/include/ktx.h"
-#include "../external/madrona-ktx/madrona_ktx.h"
+// #include "../external/madrona-ktx/madrona_ktx.h"
 
 #ifdef MADRONA_CUDA_SUPPORT
 #include <madrona/mw_gpu.hpp>
@@ -268,9 +268,10 @@ static imp::ImportedAssets loadScenes(
     std::string hssd_scenes = std::filesystem::path(DATA_DIR) /
         "hssd-hab/scenes";
 #endif
-    std::string hssd_scenes = std::filesystem::path(DATA_DIR) /
-        "test_env/scenes-uncluttered";
+    std::string hssd_scenes = (std::filesystem::path(DATA_DIR) /
+        "test_env/scenes-uncluttered").string();
 
+#if 0
     std::string procthor_scenes = std::filesystem::path(DATA_DIR) /
         "ai2thor-hab/ai2thor-hab/configs/scenes/ProcTHOR/5";
     std::string procthor_root = std::filesystem::path(DATA_DIR) /
@@ -284,12 +285,13 @@ static imp::ImportedAssets loadScenes(
     if (proc_thor && proc_thor[0] == '1') {
         hssd_scenes = procthor_scenes;
     }
+#endif
     
     std::vector<std::string> scene_paths;
 
     for (const auto &dir_entry :
             std::filesystem::directory_iterator(hssd_scenes)) {
-        scene_paths.push_back(dir_entry.path());
+        scene_paths.push_back(dir_entry.path().string());
     }
 
     if (cache_everything && std::stoi(cache_everything) == 1) {
@@ -345,10 +347,12 @@ static imp::ImportedAssets loadScenes(
 
         //uncomment this for procthor
         if (proc_thor && proc_thor[0] == '1') {
+#if 0
             loaded_scene = HabitatJSON::procThorJSONLoad(
                     procthor_root,
                     procthor_obj_root,
                     scene_path);
+#endif
         } else {
             loaded_scene = HabitatJSON::habitatJSONLoad(scene_path);
         }
@@ -1056,8 +1060,8 @@ Manager::Impl * Manager::Impl::init(
         std::vector<ImportedInstance> imported_instances;
         sim_cfg.mergeAll = false;
 
-        const char *first_unique_scene_str = getenv("HSSD_FIRST_SCENE");
-        const char *num_unique_scene_str = getenv("HSSD_NUM_SCENES");
+        const char* first_unique_scene_str = "0";
+        const char *num_unique_scene_str = "1";
 
         assert(first_unique_scene_str && num_unique_scene_str);
 

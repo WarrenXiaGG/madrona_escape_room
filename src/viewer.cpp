@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
     printf("Started in: \n");
     // Read command line arguments
-    uint32_t num_worlds = 1;
+    uint32_t num_worlds = 64;
     if (argc >= 2) {
         num_worlds = (uint32_t)atoi(argv[1]);
     }
@@ -82,7 +82,8 @@ int main(int argc, char *argv[])
     // Render mode 0 is no rendering
     // Render mode 1 is rasterization.
     // Render mode 2 is raycasting.
-    auto *render_mode = getenv("MADRONA_RENDER_MODE");
+    //auto *render_mode = getenv("MADRONA_RENDER_MODE");
+    const char* render_mode = "1";
 
     bool enable_batch_renderer =
 #ifdef MADRONA_MACOS
@@ -101,7 +102,8 @@ int main(int argc, char *argv[])
 
     printf("premanage: \n");
 
-    auto *resolution_str = getenv("MADRONA_RENDER_RESOLUTION");
+    //auto *resolution_str = getenv("MADRONA_RENDER_RESOLUTION");
+    const char* resolution_str = "128";
 
     uint32_t raycast_output_resolution = std::stoi(resolution_str);
 
@@ -340,150 +342,6 @@ int main(int argc, char *argv[])
 
         printObs();
     }, [&]() {
-        if (0) {
-            uint32_t num_image_x = 1;
-            uint32_t num_image_y = 1;
 
-            uint32_t num_images_total = num_image_x * num_image_y;
-
-            unsigned char* print_ptr;
-#ifdef MADRONA_CUDA_SUPPORT
-            int64_t num_bytes = 3 * raycast_output_resolution * raycast_output_resolution * num_images_total;
-            print_ptr = (unsigned char*)cu::allocReadback(num_bytes);
-#else
-            print_ptr = nullptr;
-#endif
-
-            char *raycast_tensor = (char *)(mgr.raycastTensor().devicePtr());
-
-            uint32_t bytes_per_image = 3 * raycast_output_resolution * raycast_output_resolution;
-
-            uint32_t image_idx = viewer.getCurrentWorldID() * 1 + 
-                std::max(viewer.getCurrentViewID(), (CountT)0);
-
-            uint32_t base_image_idx = num_images_total * (image_idx / num_images_total);
-
-            raycast_tensor += image_idx * bytes_per_image;
-
-            if(exec_mode == ExecMode::CUDA){
-#ifdef MADRONA_CUDA_SUPPORT
-                cudaMemcpy(print_ptr, raycast_tensor,
-                        num_bytes,
-                        cudaMemcpyDeviceToHost);
-                raycast_tensor = (char *)print_ptr;
-#endif
-            }
-
-            ImGui::Begin("Raycast");
-
-            auto draw2 = ImGui::GetWindowDrawList();
-            ImVec2 windowPos = ImGui::GetWindowPos();
-            char *raycasters = raycast_tensor;
-
-#if 0
-            for (int i = 0; i < 100; ++i) {
-                printf("%u ", (uint8_t)raycasters[i]);
-            }
-            printf("\n");
-#endif
-
-            int vertOff = 70;
-
-            float pixScale = 1;
-            int extentsX = (int)(pixScale * raycast_output_resolution);
-            int extentsY = (int)(pixScale * raycast_output_resolution);
-
-            for (int image_y = 0; image_y < num_image_y; ++image_y) {
-                for (int image_x = 0; image_x < num_image_x; ++image_x) {
-                    for (int i = 0; i < raycast_output_resolution; i++) {
-                        for (int j = 0; j < raycast_output_resolution; j++) {
-                            uint32_t linear_image_idx = image_x + image_y * num_image_x;
-
-                            uint32_t linear_idx = 3 * 
-                                (j + (i + linear_image_idx * raycast_output_resolution) * raycast_output_resolution);
-
-                            auto realColor = IM_COL32(
-                                    (uint8_t)raycasters[linear_idx + 0],
-                                    (uint8_t)raycasters[linear_idx + 1],
-                                    (uint8_t)raycasters[linear_idx + 2],
-                                    255);
-
-                            draw2->AddRectFilled(
-                                    { ((i + image_x * raycast_output_resolution) * pixScale) + windowPos.x, 
-                                    ((j + image_y * raycast_output_resolution) * pixScale) + windowPos.y + vertOff }, 
-                                    { ((i + 1 + image_x * raycast_output_resolution) * pixScale) + windowPos.x,   
-                                    ((j + image_y * raycast_output_resolution + 1) * pixScale) + +windowPos.y + vertOff },
-                                    realColor, 0, 0);
-                        }
-                    }
-                }
-            }
-            ImGui::End();
-        }
-
-
-
-
-
-        if (0) {
-            uint32_t num_images_total = 1;
-
-            unsigned char* print_ptr;
-            int64_t num_bytes = 3 * raycast_output_resolution * raycast_output_resolution * num_images_total;
-            print_ptr = (unsigned char*)cu::allocReadback(num_bytes);
-
-            char *raycast_tensor = (char *)(mgr.raycastTensor().devicePtr());
-
-            uint32_t bytes_per_image = 3 * raycast_output_resolution * raycast_output_resolution;
-            uint32_t row_stride_bytes = 3 * raycast_output_resolution;
-
-            uint32_t image_idx = 0;
-
-            uint32_t base_image_idx = num_images_total * (image_idx / num_images_total);
-
-            raycast_tensor += image_idx * bytes_per_image;
-
-            if(exec_mode == ExecMode::CUDA){
-                cudaMemcpy(print_ptr, raycast_tensor,
-                        num_bytes,
-                        cudaMemcpyDeviceToHost);
-                raycast_tensor = (char *)print_ptr;
-            }
-
-            char *tmp_image_memory = (char *)malloc(bytes_per_image);
-
-            char *image_memory = (char *)malloc(bytes_per_image * num_images_total);
-
-            uint32_t num_images_y = 1;
-            uint32_t num_images_x = num_images_total / num_images_y;
-
-            uint32_t output_num_pixels_x = num_images_x * raycast_output_resolution;
-
-            for (uint32_t image_y = 0; image_y < num_images_y; ++image_y) {
-                for (uint32_t image_x = 0; image_x < num_images_x; ++image_x) {
-                    uint32_t image_idx = image_x + image_y * num_images_x;
-
-                    const char *input_image = raycast_tensor + image_idx * bytes_per_image;
-
-                    transposeImage(tmp_image_memory, input_image, raycast_output_resolution, 3);
-
-                    for (uint32_t row_idx = 0; row_idx < raycast_output_resolution; ++row_idx) {
-                        const char *input_row = tmp_image_memory + row_idx * row_stride_bytes;
-
-                        uint32_t output_pixel_x = image_x * raycast_output_resolution;
-                        uint32_t output_pixel_y = image_y * raycast_output_resolution + row_idx;
-                        char *output_row = image_memory + 3 * (output_pixel_x + output_pixel_y * output_num_pixels_x);
-
-                        memcpy(output_row, input_row, 3 * raycast_output_resolution);
-                    }
-                }
-            }
-
-            std::string file_name = std::string("out") + std::to_string(0) + ".png";
-            stbi_write_png(file_name.c_str(), raycast_output_resolution * num_images_x, num_images_y * raycast_output_resolution,
-                    3, image_memory, 3 * num_images_x * raycast_output_resolution);
-
-            free(image_memory);
-        }
     });
 }

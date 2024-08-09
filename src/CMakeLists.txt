@@ -48,7 +48,7 @@ target_link_libraries(mad_escape_mgr
         madrona_importer
         madrona_physics_loader
         madrona_render
-        madrona_ktx
+        # madrona_ktx
         madrona_render_asset_processor
 )
 
@@ -74,13 +74,13 @@ target_compile_definitions(mad_escape_mgr PRIVATE
     -DDATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/"
 )
 
-madrona_python_module(madrona_escape_room
-    bindings.cpp
-)
+# madrona_python_module(madrona_escape_room
+# bindings.cpp
+# )
 
-target_link_libraries(madrona_escape_room PRIVATE
-    mad_escape_mgr
-)
+# target_link_libraries(madrona_escape_room PRIVATE
+# mad_escape_mgr
+# )
 
 if (TARGET madrona_viz)
     add_executable(viewer viewer.cpp)
@@ -88,19 +88,20 @@ if (TARGET madrona_viz)
         PUBLIC
         mad_escape_importer mad_escape_mgr
         PRIVATE
-        madrona_mw_core madrona_viz madrona_cuda stb)
+        madrona_mw_core madrona_viz stb)
 
     target_compile_definitions(viewer PUBLIC
         -DMADRONA_VIEWER
     )
 
-    if (TARGET madrona_cuda)
-        target_link_libraries(viewer PRIVATE madrona_cuda)
-    endif()
+    # if (TARGET madrona_cuda)
+    #     target_link_libraries(viewer PRIVATE madrona_cuda)
+    # endif()
+
     target_compile_definitions(viewer PRIVATE
         -DDATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/"
     )
 endif()
 
 add_executable(headless headless.cpp)
-target_link_libraries(headless PUBLIC madrona_mw_core mad_escape_mgr madrona_viz madrona_cuda stb)
+target_link_libraries(headless PUBLIC madrona_mw_core mad_escape_mgr madrona_viz stb)
