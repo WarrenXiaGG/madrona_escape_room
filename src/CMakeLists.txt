@@ -3,7 +3,6 @@
 set(SIMULATOR_SRCS
     types.hpp
     sim.hpp sim.inl sim.cpp
-    level_gen.hpp level_gen.cpp
 )
 SET(GPU_HIDESEEK_COMPILE_FLAGS
     -v)
@@ -49,6 +48,7 @@ target_link_libraries(mad_escape_mgr
         madrona_physics_loader
         madrona_render
         madrona_ktx
+        madrona_render_asset_processor
 )
 
 if (TARGET madrona_mw_gpu)
@@ -71,14 +71,6 @@ endif ()
 
 target_compile_definitions(mad_escape_mgr PRIVATE
     -DDATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/"
-)
-
-madrona_python_module(madrona_escape_room
-    bindings.cpp
-)
-
-target_link_libraries(madrona_escape_room PRIVATE
-    mad_escape_mgr
 )
 
 if (TARGET madrona_viz)

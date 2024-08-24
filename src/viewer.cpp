@@ -160,7 +160,8 @@ int main(int argc, char *argv[])
 
                 printf("%d, %d: %d %d %d %d\n",
                        i, j, move_amount, move_angle, turn, g);
-                mgr.setAction(i, j, move_amount, move_angle, turn, g,1,1,1,1,1);
+                mgr.setAction(i, j, move_amount, move_angle, turn, g,
+                        1, 1, 1, 1, 1);
             }
         }
 
@@ -211,12 +212,6 @@ int main(int argc, char *argv[])
     viewer.loop(
     [&mgr](CountT world_idx, const Viewer::UserInput &input)
     {
-        // printf("new frame\n");
-
-        using Key = Viewer::KeyboardKey;
-        if (input.keyHit(Key::R)) {
-            mgr.triggerReset(world_idx);
-        }
     },
     [&mgr](CountT world_idx, CountT agent_idx,
            const Viewer::UserInput &input)
@@ -326,7 +321,8 @@ int main(int argc, char *argv[])
             z = 0;
         }
 
-        mgr.setAction(world_idx, agent_idx, move_amount, move_angle, r, g,x,y,z,rot,vrot);
+        mgr.setAction(world_idx, agent_idx, move_amount, move_angle, 
+                r, g, x, y, z, rot, vrot);
     }, [&]() {
         if (replay_log.has_value()) {
             bool replay_finished = replayStep();

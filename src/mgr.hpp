@@ -37,23 +37,13 @@ public:
 
     // These functions export Tensor objects that link the ECS
     // simulation state to the python bindings / PyTorch tensors (src/bindings.cpp)
-    madrona::py::Tensor resetTensor() const;
     madrona::py::Tensor actionTensor() const;
-    madrona::py::Tensor rewardTensor() const;
-    madrona::py::Tensor doneTensor() const;
-    madrona::py::Tensor selfObservationTensor() const;
-    madrona::py::Tensor partnerObservationsTensor() const;
-    madrona::py::Tensor roomEntityObservationsTensor() const;
-    madrona::py::Tensor doorObservationTensor() const;
-    madrona::py::Tensor lidarTensor() const;
-    madrona::py::Tensor stepsRemainingTensor() const;
     madrona::py::Tensor rgbTensor() const;
     madrona::py::Tensor depthTensor() const;
     madrona::py::Tensor raycastTensor() const;
 
     // These functions are used by the viewer to control the simulation
     // with keyboard inputs in place of DNN policy actions
-    void triggerReset(int32_t world_idx);
     void setAction(int32_t world_idx,
                    int32_t agent_idx,
                    int32_t move_amount,
@@ -64,8 +54,7 @@ public:
                    int32_t y,
                    int32_t z,
                    int32_t rot,
-                   int32_t vrot
-                   );
+                   int32_t vrot);
 
     madrona::render::RenderManager & getRenderManager();
 

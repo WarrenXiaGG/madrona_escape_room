@@ -1,3 +1,4 @@
+#if 0
 #include "mgr.hpp"
 
 #include <madrona/macros.hpp>
@@ -55,3 +56,4 @@ NB_MODULE(madrona_escape_room, m) {
 }
 
 }
+#endif
